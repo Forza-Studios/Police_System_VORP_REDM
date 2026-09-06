@@ -15,6 +15,10 @@ client_scripts {
     'client/client.lua'
 }
 
+server_scripts {
+    'server/server.lua'
+}
+
 ui_page 'html/index.html'
 
 files {

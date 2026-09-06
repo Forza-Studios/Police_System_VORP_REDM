@@ -13,6 +13,10 @@ Config = {
     InteractionDistance = 3.5,
     Key = 0x760A9C6F, -- Key 'G' (INPUT_CONTEXT)
 
+    -- Handcuff Settings
+    CuffKey = 0x805B4AEA, -- Key 'L' (INPUT_LOG / Special Ability)
+    CuffDistance = 2.5,
+
     -- UI Duty Pill Settings
     EnableDutyPill = true,
     DutyPillText = "Sheriff On Duty"
