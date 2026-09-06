@@ -71,6 +71,14 @@ document.getElementById('btn-show-id').addEventListener('click', function() {
     });
 });
 
+document.getElementById('btn-open-inventory').addEventListener('click', function() {
+    fetch(`https://${GetParentResourceName()}/actionComingSoon`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ msg: 'Open Inventory feature coming soon!' })
+    });
+});
+
 document.getElementById('btn-put-jail').addEventListener('click', function() {
     const menuWrapper = document.getElementById('target-menu-wrapper');
     menuWrapper.classList.add('hidden');

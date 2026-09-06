@@ -88,8 +88,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(4px);
+    background: transparent;
+    backdrop-filter: none;
     z-index: 10000;
     opacity: 1;
     transition: opacity 0.3s ease;
