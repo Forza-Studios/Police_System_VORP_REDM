@@ -409,6 +409,7 @@ RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
         SetEnableHandcuffs(playerPed, true)
         Citizen.InvokeNative(0x1913AE2D2FB18414, playerPed, 128, true) -- SetPedConfigFlag 128
         SetCurrentPedWeapon(playerPed, `WEAPON_UNARMED`, true)
+        FreezeEntityPosition(playerPed, true)
 
         local usedDict, usedName = playAnimWithFallback(playerPed, targetAnims, 8.0, -8.0, -1, 31)
 
@@ -416,6 +417,14 @@ RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
             while isHandcuffed do
                 Wait(0)
                 local ped = PlayerPedId()
+                -- Disable Movement Controls
+                DisableControlAction(0, 0x5966D52A, true) -- MOVE LEFT/RIGHT
+                DisableControlAction(0, 0x4D8FA8B0, true) -- MOVE UP/DOWN
+                DisableControlAction(0, 0x8FD015D8, true) -- SPRINT
+                DisableControlAction(0, 0xD7FF1B00, true) -- JUMP
+                DisableControlAction(0, 0x26E9DAE4, true) -- VAULT/COVER
+
+                -- Disable Action Controls
                 DisableControlAction(0, 0x07CE1E29, true) -- ATTACK
                 DisableControlAction(0, 0x8FFC7572, true) -- AIM
                 DisableControlAction(0, 0xD70350AF, true) -- SELECT WEAPON
@@ -435,6 +444,7 @@ RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
         notify("You have been uncuffed.")
         SetEnableHandcuffs(playerPed, false)
         Citizen.InvokeNative(0x1913AE2D2FB18414, playerPed, 128, false)
+        FreezeEntityPosition(playerPed, false)
         ClearPedTasks(playerPed)
     end
 end)
