@@ -4,9 +4,6 @@ local isPoliceOnDuty = false
 local promptGroup = GetRandomIntInRange(0, 0xffffff)
 local promptHandle = nil
 
-local savedCivilianSkin = nil
-local savedCivilianComponents = nil
-
 local function notify(msg)
     TriggerEvent("vorp:TipRight", msg, 4000)
     TriggerEvent("vorp:Notify", "top-right", msg, 4000)
@@ -21,110 +18,6 @@ local function DrawText3D(x, y, z, text)
         SetTextCentre(1)
         local str = CreateVarString(10, "LITERAL_STRING", text)
         DisplayText(str, _x, _y)
-    end
-end
-
-local function IsPedReady(ped)
-    return Citizen.InvokeNative(0xA0BC8FAED8CFEB3C, ped)
-end
-
-local function UpdatePed(ped)
-    Citizen.InvokeNative(0xAAB86462966168CE, ped, true)
-    Citizen.InvokeNative(0xCC8CA3E88256E58F, ped, false, true, true, true, false)
-end
-
-local function saveCurrentOutfit()
-    pcall(function()
-        if GetResourceState("cas-charcreator") == "started" then
-            savedCivilianSkin = exports["cas-charcreator"]:GetPlayerSkin()
-            savedCivilianComponents = exports["cas-charcreator"]:GetAllPlayerComponents()
-        elseif GetResourceState("vorp_character") == "started" then
-            savedCivilianSkin = exports["vorp_character"]:GetPlayerSkin()
-            savedCivilianComponents = exports["vorp_character"]:GetAllPlayerComponents()
-        end
-    end)
-end
-
-local function restoreCivilianOutfit(playerPed)
-    local restored = false
-    if savedCivilianSkin or savedCivilianComponents then
-        local success = pcall(function()
-            if GetResourceState("cas-charcreator") == "started" then
-                exports["cas-charcreator"]:LoadPlayerComponents(playerPed, savedCivilianSkin, savedCivilianComponents, true)
-            elseif GetResourceState("vorp_character") == "started" then
-                exports["vorp_character"]:LoadPlayerComponents(playerPed, savedCivilianSkin, savedCivilianComponents, true)
-            end
-        end)
-        if success then restored = true end
-    end
-
-    if not restored then
-        TriggerEvent("vorp_character:reloadSkin")
-        TriggerServerEvent("vorp_character:LoadUserPed")
-        ExecuteCommand("rc")
-        ExecuteCommand("refreshskin")
-    end
-end
-
-local function resetAndApplyBaseBody(playerPed, isMale)
-    -- Reset all ped components & attachments
-    Citizen.InvokeNative(0x0BFA1BD465CDFEFD, playerPed)
-
-    -- Apply required base body components (Head, Body Upper, Body Lower, Eyes)
-    if isMale then
-        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_M_HEAD_001_V_001"), true, true, false)
-        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_M_BODIES_UPPER_001_V_001"), true, true, false)
-        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_M_BODIES_LOWER_001_V_001"), true, true, false)
-        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_M_EYES_001_TINT_001"), true, true, false)
-    else
-        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_F_HEAD_001_V_001"), true, true, false)
-        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_F_BODIES_UPPER_001_V_001"), true, true, false)
-        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_F_BODIES_LOWER_001_V_001"), true, true, false)
-        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_F_EYES_001_TINT_001"), true, true, false)
-    end
-
-    UpdatePed(playerPed)
-end
-
-local function setPoliceOutfit(onDuty)
-    local playerPed = PlayerPedId()
-    if onDuty then
-        local isMale = IsPedMale(playerPed)
-
-        -- 1. Save player's civilian outfit from cas-charcreator / vorp_character
-        saveCurrentOutfit()
-
-        -- 2. Reset components and apply base body
-        resetAndApplyBaseBody(playerPed, isMale)
-
-        -- 3. Apply police uniform clothing items
-        local outfits = Config and Config.Outfits
-        local outfitList = isMale and (outfits and outfits.Male) or (outfits and outfits.Female)
-        if outfitList then
-            for _, item in ipairs(outfitList) do
-                local hash = type(item) == "string" and GetHashKey(item) or item
-                if hash and hash ~= 0 then
-                    local timeout = 0
-                    while not IsPedReady(playerPed) and timeout < 100 do
-                        Wait(0)
-                        timeout = timeout + 1
-                    end
-
-                    Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, hash, true, true, false)
-                end
-            end
-        end
-
-        UpdatePed(playerPed)
-
-        local timeout = 0
-        while not IsPedReady(playerPed) and timeout < 100 do
-            Wait(0)
-            timeout = timeout + 1
-        end
-    else
-        -- Restore civilian outfit using saved skin and components
-        restoreCivilianOutfit(playerPed)
     end
 end
 
@@ -270,7 +163,6 @@ CreateThread(function()
                             else
                                 notify("You are now OFF duty!")
                             end
-                            setPoliceOutfit(isPoliceOnDuty)
                             Wait(800)
                         end
                         break
