@@ -1,38 +1,45 @@
-local doorStates = {}
+local doorStates = {} -- [doorHashNum] = isLocked (boolean)
 
--- Initialize door states on resource start
+local function ToPrimitiveNumber(val)
+    if type(val) == "number" then return math.floor(val) end
+    if type(val) == "string" then return math.floor(tonumber(val) or 0) end
+    if type(val) == "boolean" then return val and 1 or 0 end
+    return 0
+end
+
+local function initDoorStates()
+    local doorsList = (Config and (Config.LockedDoors or Config.Doors)) or {}
+    for _, entry in ipairs(doorsList) do
+        local doorHash = ToPrimitiveNumber(type(entry) == "table" and (entry.doorHash or entry.hash) or entry)
+        if doorHash ~= 0 and doorStates[doorHash] == nil then
+            doorStates[doorHash] = true -- Default locked
+        end
+    end
+end
+
 AddEventHandler("onResourceStart", function(resourceName)
     if resourceName == GetCurrentResourceName() then
-        if Config and Config.DoorList then
-            for _, door in ipairs(Config.DoorList) do
-                doorStates[door.id] = (door.locked ~= false)
-            end
-        end
+        initDoorStates()
     end
 end)
 
 RegisterNetEvent("coi_police:server:requestDoorStates", function()
     local _source = source
-    if Config and Config.DoorList then
-        for _, door in ipairs(Config.DoorList) do
-            if doorStates[door.id] == nil then
-                doorStates[door.id] = (door.locked ~= false)
-            end
-        end
-    end
+    initDoorStates()
     TriggerClientEvent("coi_police:client:syncDoorStates", _source, doorStates)
 end)
 
-RegisterNetEvent("coi_police:server:toggleDoorState", function(doorId)
+RegisterNetEvent("coi_police:server:toggleDoorLock", function(hash)
     local _source = source
-    if not doorId then return end
+    local doorHash = ToPrimitiveNumber(hash)
+    if doorHash == 0 then return end
 
-    if doorStates[doorId] == nil then
-        doorStates[doorId] = true
+    if doorStates[doorHash] == nil then
+        doorStates[doorHash] = true
     end
 
-    doorStates[doorId] = not doorStates[doorId]
-    TriggerClientEvent("coi_police:client:updateDoorState", -1, doorId, doorStates[doorId])
+    doorStates[doorHash] = not doorStates[doorHash]
+    TriggerClientEvent("coi_police:client:syncSingleDoor", -1, doorHash, doorStates[doorHash])
 end)
 
 -- Handcuff Target Event Forwarding

@@ -21,10 +21,10 @@ Config = {
     EnableDutyPill = true,
     DutyPillText = "Sheriff On Duty",
 
-    -- Permanently Locked Doors (Add door hashes here)
+    -- Cell Doors Array (On-Duty Sheriff toggles Lock/Unlock with Key 'K')
     LockedDoors = {
-        295355979, -- Valentine Cell 1
-        193903155  -- Valentine Cell 2
+        { doorHash = 295355979, coords = vector3(-273.464, 809.966, 118.368), name = "Valentine Cell 1" },
+        { doorHash = 193903155, coords = vector3(-272.052, 808.258, 118.369), name = "Valentine Cell 2" }
     },
 
     -- Jail Cell Locations (Teleport targets when using "Put in Jail")

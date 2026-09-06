@@ -449,7 +449,9 @@ RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
     end
 end)
 
--- PERMANENT CELL DOOR LOCKING SYSTEM (Engineered from coi_hm)
+-- CELL DOOR LOCKING SYSTEM (Key 'K' Toggle for On-Duty Sheriffs)
+local clientDoorStates = {}
+
 local function ToPrimitiveNumber(val)
     if type(val) == "number" then return math.floor(val) end
     if type(val) == "string" then return math.floor(tonumber(val) or 0) end
@@ -492,21 +494,111 @@ local function SetDoorLockState(hash, isLocked)
     end
 end
 
-local function applyAllLockedDoors()
-    if Config and Config.LockedDoors then
-        for _, entry in ipairs(Config.LockedDoors) do
-            local dHash = type(entry) == "table" and (entry.doorHash or entry.hash) or entry
-            SetDoorLockState(dHash, true)
+RegisterNetEvent("coi_police:client:syncDoorStates", function(states)
+    if states then
+        clientDoorStates = states
+    end
+end)
+
+RegisterNetEvent("coi_police:client:syncSingleDoor", function(doorHash, isLocked)
+    clientDoorStates[doorHash] = isLocked
+    SetDoorLockState(doorHash, isLocked)
+    local actionText = isLocked and "Locked cell door." or "Unlocked cell door."
+    notify(actionText)
+end)
+
+local function applyAllDoorStates()
+    local doorsList = (Config and (Config.LockedDoors or Config.Doors)) or {}
+    for _, entry in ipairs(doorsList) do
+        local doorHash = ToPrimitiveNumber(type(entry) == "table" and (entry.doorHash or entry.hash) or entry)
+        if doorHash ~= 0 then
+            local isLocked = clientDoorStates[doorHash]
+            if isLocked == nil then
+                isLocked = true
+            end
+            SetDoorLockState(doorHash, isLocked)
         end
     end
 end
 
 CreateThread(function()
     while true do
-        applyAllLockedDoors()
+        applyAllDoorStates()
         Wait(1000)
     end
 end)
+
+local function tryToggleClosestDoor()
+    if not isPoliceOnDuty then
+        notify("You must be ON duty to lock or unlock cell doors!")
+        return
+    end
+
+    local doorsList = (Config and (Config.LockedDoors or Config.Doors)) or {}
+    if #doorsList == 0 then
+        notify("No cell doors configured!")
+        return
+    end
+
+    local ped = PlayerPedId()
+    local pedCoords = GetEntityCoords(ped)
+    local closestHash = nil
+    local closestDist = 3.5
+
+    -- 1. Direct coordinate proximity check
+    for _, entry in ipairs(doorsList) do
+        local doorHash = ToPrimitiveNumber(type(entry) == "table" and (entry.doorHash or entry.hash) or entry)
+        if doorHash ~= 0 then
+            local doorCoords = type(entry) == "table" and entry.coords
+            if doorCoords then
+                local dist = #(pedCoords - vector3(doorCoords.x, doorCoords.y, doorCoords.z))
+                if dist <= closestDist then
+                    closestDist = dist
+                    closestHash = doorHash
+                end
+            end
+        end
+    end
+
+    -- 2. Fallback scan object pool if not matched by coordinates
+    if not closestHash then
+        local objects = GetGamePool("CObject")
+        for _, obj in ipairs(objects) do
+            if DoesEntityExist(obj) then
+                local objCoords = GetEntityCoords(obj)
+                local dist = #(pedCoords - objCoords)
+                if dist <= closestDist then
+                    local modelHash = GetEntityModel(obj)
+                    local doorHashPtr = Citizen.PointerValueIntInitialized(0)
+                    local found = Citizen.InvokeNative(0x589F80B325CC82C5, objCoords.x, objCoords.y, objCoords.z, modelHash, doorHashPtr)
+                    if found then
+                        local doorHash = ToPrimitiveNumber(Citizen.PointerValueInt(doorHashPtr))
+                        for _, entry in ipairs(doorsList) do
+                            local configuredHash = ToPrimitiveNumber(type(entry) == "table" and (entry.doorHash or entry.hash) or entry)
+                            if configuredHash == doorHash then
+                                closestDist = dist
+                                closestHash = doorHash
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if closestHash then
+        TriggerServerEvent("coi_police:server:toggleDoorLock", closestHash)
+    else
+        notify("No cell door nearby!")
+    end
+end
+
+RegisterCommand("toggledoor", function()
+    tryToggleClosestDoor()
+end, false)
+
+RegisterKeyMapping("toggledoor", "Lock or Unlock Cell Door", "keyboard", "K")
 
 local function spawnPoliceNPCs()
     if not POLICE_NPCS or #POLICE_NPCS == 0 then return end
@@ -591,6 +683,7 @@ end
 -- MAIN INTERACTION THREAD FOR DUTY NPC & TARGET HANDCUFFING
 CreateThread(function()
     spawnPoliceNPCs()
+    TriggerServerEvent("coi_police:server:requestDoorStates")
 
     local groupTitle = CreateVarString(10, 'LITERAL_STRING', "Sheriff Office")
     local playerGroupTitle = CreateVarString(10, 'LITERAL_STRING', "Law Action")
@@ -652,6 +745,27 @@ CreateThread(function()
                     if isCuffPromptPressed() then
                         tryOpenTargetMenu()
                         Wait(1000)
+                    end
+                end
+            end
+
+            -- 3. ON-DUTY CELL DOOR PROMPT
+            if isPoliceOnDuty then
+                local doorsList = Config and (Config.LockedDoors or Config.Doors)
+                if doorsList and #doorsList > 0 then
+                    for _, entry in ipairs(doorsList) do
+                        local doorHash = ToPrimitiveNumber(type(entry) == "table" and (entry.doorHash or entry.hash) or entry)
+                        local doorCoords = type(entry) == "table" and entry.coords
+                        if doorHash ~= 0 and doorCoords then
+                            local dist = #(playerCoords - vector3(doorCoords.x, doorCoords.y, doorCoords.z))
+                            if dist <= 2.5 then
+                                sleep = 0
+                                local isLocked = clientDoorStates[doorHash]
+                                if isLocked == nil then isLocked = true end
+                                local promptText = isLocked and "[K] Unlock Cell Door" or "[K] Lock Cell Door"
+                                DrawText3D(doorCoords.x, doorCoords.y, doorCoords.z + 0.2, promptText)
+                            end
+                        end
                     end
                 end
             end
