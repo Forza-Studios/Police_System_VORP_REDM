@@ -464,9 +464,6 @@ CreateThread(function()
                     createCuffPrompt(cuffText)
                     PromptSetActiveGroupThisFrame(cuffPromptGroup, playerGroupTitle, 0, 0, 0, 0)
 
-                    local targetCoords = GetEntityCoords(closestPed)
-                    DrawText3D(targetCoords.x, targetCoords.y, targetCoords.z + 1.0, "[L] " .. cuffText)
-
                     if isCuffPromptPressed() then
                         tryCuffTarget()
                         Wait(1500)
