@@ -21,24 +21,67 @@ local function DrawText3D(x, y, z, text)
     end
 end
 
+local function IsPedReady(ped)
+    return Citizen.InvokeNative(0xA0BC8FAED8CFEB3C, ped)
+end
+
+local function UpdatePed(ped)
+    Citizen.InvokeNative(0xAAB86462966168CE, ped, true)
+    Citizen.InvokeNative(0xCC8CA3E88256E58F, ped, false, true, true, true, false)
+end
+
+local function resetAndApplyBaseBody(playerPed, isMale)
+    -- Reset all ped components & attachments
+    Citizen.InvokeNative(0x0BFA1BD465CDFEFD, playerPed)
+
+    -- Apply required base body components (Head, Body Upper, Body Lower, Eyes)
+    if isMale then
+        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_M_HEAD_001_V_001"), true, true, false)
+        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_M_BODIES_UPPER_001_V_001"), true, true, false)
+        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_M_BODIES_LOWER_001_V_001"), true, true, false)
+        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_M_EYES_001_TINT_001"), true, true, false)
+    else
+        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_F_HEAD_001_V_001"), true, true, false)
+        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_F_BODIES_UPPER_001_V_001"), true, true, false)
+        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_F_BODIES_LOWER_001_V_001"), true, true, false)
+        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, GetHashKey("CLOTHING_ITEM_F_EYES_001_TINT_001"), true, true, false)
+    end
+
+    UpdatePed(playerPed)
+end
+
 local function setPoliceOutfit(onDuty)
     local playerPed = PlayerPedId()
     if onDuty then
         local isMale = IsPedMale(playerPed)
+
+        -- 1. Reset components and apply base body
+        resetAndApplyBaseBody(playerPed, isMale)
+
+        -- 2. Apply police uniform clothing items
         local outfits = Config and Config.Outfits
         local outfitList = isMale and (outfits and outfits.Male) or (outfits and outfits.Female)
         if outfitList then
             for _, item in ipairs(outfitList) do
                 local hash = type(item) == "string" and GetHashKey(item) or item
                 if hash and hash ~= 0 then
-                    -- ApplyShopItemToPed(ped, hash, immediatly, isMp, p4)
-                    Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, hash, true, true, true)
+                    local timeout = 0
+                    while not IsPedReady(playerPed) and timeout < 100 do
+                        Wait(0)
+                        timeout = timeout + 1
+                    end
+
+                    Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, hash, true, true, false)
                 end
             end
-            -- Refresh & update ped variation & active meta ped components
-            Citizen.InvokeNative(0x704C908E9C405136, playerPed)
-            Citizen.InvokeNative(0xCC8CA3E88256E58F, playerPed, false, true, true, true, false)
-            Citizen.InvokeNative(0xAAB86462966168CE, playerPed, true)
+        end
+
+        UpdatePed(playerPed)
+
+        local timeout = 0
+        while not IsPedReady(playerPed) and timeout < 100 do
+            Wait(0)
+            timeout = timeout + 1
         end
     else
         -- Restore civilian skin & clothes on going off duty
