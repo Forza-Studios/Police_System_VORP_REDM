@@ -245,7 +245,7 @@ local function cuffNPCPed(npcPed, cuffed)
     end
 end
 
--- CORE CUFF TRIGGER FUNCTION (Invoked by Key 'L', /cuff command, or Prompt)
+-- CORE CUFF TRIGGER FUNCTION (Invoked by Menu Action)
 local function tryCuffTarget()
     if not isPoliceOnDuty then
         notify("You must be ON duty to handcuff!")
@@ -277,12 +277,61 @@ local function tryCuffTarget()
     end
 end
 
+-- NUI CALLBACKS FOR TARGET ACTION MENU
+RegisterNUICallback("closeMenu", function(data, cb)
+    SetNuiFocus(false, false)
+    cb("ok")
+end)
+
+RegisterNUICallback("actionHandcuff", function(data, cb)
+    SetNuiFocus(false, false)
+    tryCuffTarget()
+    cb("ok")
+end)
+
+RegisterNUICallback("actionComingSoon", function(data, cb)
+    notify(data.msg or "Feature coming soon!")
+    cb("ok")
+end)
+
+-- FUNCTION TO OPEN TARGET ACTION MENU ON KEY 'L'
+local function tryOpenTargetMenu()
+    if not isPoliceOnDuty then
+        notify("You must be ON duty to perform police actions!")
+        return
+    end
+
+    local cuffDist = (Config and Config.CuffDistance) or 5.0
+    local closestPed, closestDist, isPlayer, targetServerId = GetClosestTargetPed(cuffDist)
+
+    if closestPed ~= -1 and DoesEntityExist(closestPed) then
+        local isTargetCuffed = false
+        if isPlayer and targetServerId then
+            isTargetCuffed = targetCuffStates[targetServerId] or false
+        else
+            isTargetCuffed = cuffedNPCs[closestPed] or false
+        end
+
+        local nameStr = isPlayer and ("Player [ID: " .. tostring(targetServerId) .. "]") or "Civilian / NPC"
+
+        SetNuiFocus(true, true)
+        SendNUIMessage({
+            action = "openTargetMenu",
+            targetName = nameStr,
+            isPlayer = isPlayer,
+            isCuffed = isTargetCuffed
+        })
+    else
+        notify("No target nearby to interact with!")
+    end
+end
+
 -- KEY MAPPING AND COMMAND DEFINITION FOR PHYSICAL KEY 'L'
 RegisterCommand("cuff", function()
-    tryCuffTarget()
+    tryOpenTargetMenu()
 end, false)
 
-RegisterKeyMapping("cuff", "Handcuff or Uncuff Nearby Target", "keyboard", "L")
+RegisterKeyMapping("cuff", "Open Police Target Menu", "keyboard", "L")
 
 -- TARGET PLAYER CUFF / UNCUFF EVENT
 RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
@@ -400,6 +449,8 @@ local function cleanup()
         cuffPromptHandle = nil
     end
 
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = "closeTargetMenu" })
     updateDutyUI(false)
 end
 
@@ -465,8 +516,8 @@ CreateThread(function()
                     PromptSetActiveGroupThisFrame(cuffPromptGroup, playerGroupTitle, 0, 0, 0, 0)
 
                     if isCuffPromptPressed() then
-                        tryCuffTarget()
-                        Wait(1500)
+                        tryOpenTargetMenu()
+                        Wait(1000)
                     end
                 end
             end
