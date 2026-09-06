@@ -11,5 +11,9 @@ POLICE_NPCS = {
 
 Config = {
     InteractionDistance = 3.5,
-    Key = 0x760A9C6F -- Key 'G' (INPUT_CONTEXT)
+    Key = 0x760A9C6F, -- Key 'G' (INPUT_CONTEXT)
+
+    -- UI Duty Pill Settings
+    EnableDutyPill = true,
+    DutyPillText = "Sheriff On Duty"
 }

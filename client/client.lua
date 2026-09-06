@@ -9,6 +9,21 @@ local function notify(msg)
     TriggerEvent("vorp:Notify", "top-right", msg, 4000)
 end
 
+local function updateDutyUI(onDuty)
+    if Config and Config.EnableDutyPill then
+        if onDuty then
+            SendNUIMessage({
+                action = "showDutyPill",
+                text = (Config and Config.DutyPillText) or "Sheriff On Duty"
+            })
+        else
+            SendNUIMessage({
+                action = "hideDutyPill"
+            })
+        end
+    end
+end
+
 local function DrawText3D(x, y, z, text)
     local onScreen, _x, _y = GetScreenCoordFromWorldCoord(x, y, z)
     if onScreen then
@@ -129,6 +144,8 @@ local function cleanup()
         PromptDelete(promptHandle)
         promptHandle = nil
     end
+
+    updateDutyUI(false)
 end
 
 CreateThread(function()
@@ -163,6 +180,7 @@ CreateThread(function()
                             else
                                 notify("You are now OFF duty!")
                             end
+                            updateDutyUI(isPoliceOnDuty)
                             Wait(800)
                         end
                         break
