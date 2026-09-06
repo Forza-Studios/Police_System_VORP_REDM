@@ -1,0 +1,774 @@
+<html lang="ar">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Police MDT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Rye&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=Legendary_101">
+    <style>
+        body,
+        html {
+            background: none !important;
+            background-color: transparent !important;
+            opacity: 0.999 !important;
+        }
+    </style>
+</head>
+
+<body style="background: none !important; background-color: transparent !important;">
+
+    <div id="mdt-container" class="legendary-mdt" style="display: none;">
+        <!-- New Sidebar Layout (RTL Friendly) -->
+        <aside class="mdt-sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-handcuffs sheriff-logo" style="color:var(--primary-blue);"></i>
+                <h1 class="mdt-title shimmer-text" data-loc="ui_sidebar_title">POLICE MDT</h1>
+            </div>
+
+            <div class="officer-profile">
+                <div class="profile-avatar">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <div class="profile-info">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span id="officerName" class="name">---</span>
+                        <div id="duty-badge" class="status-badge status-off">
+                            <span class="status-dot"></span>
+                            <span id="duty-text" class="status-text">OFF</span>
+                        </div>
+                    </div>
+                    <span id="officerGrade" class="badge">ID: --</span>
+                </div>
+            </div>
+
+            <nav class="mdt-nav">
+                <button class="nav-btn active" data-target="dashboard">
+                    <i class="fas fa-magnifying-glass"></i> <span data-loc="ui_search_citizen">البحث والمواطنين</span>
+                </button>
+                <button class="nav-btn" data-target="warrants">
+                    <i class="fas fa-scroll"></i> <span data-loc="ui_warrants">المطلوبين والمذكرات</span>
+                </button>
+
+                <button class="nav-btn" data-target="jailed-citizens">
+                    <i class="fas fa-users-slash"></i> <span data-loc="ui_jailed">إدارة المسجونين</span>
+                </button>
+                <button class="nav-btn" data-target="active-officers">
+                    <i class="fas fa-users-viewfinder"></i> <span data-loc="ui_active_cops">الضباط المتصلون</span>
+                </button>
+                <button id="bossMenuBtn" class="nav-btn" style="display:none;" data-target="roster">
+                    <i class="fas fa-user-gear"></i> <span data-loc="ui_manage_cops">إدارة الضباط</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="panicBtn" class="nav-btn btn-danger panic-btn">
+                    <i class="fas fa-triangle-exclamation"></i> <span data-loc="ui_panic">طلب دعم عاجل</span>
+                </button>
+                <button id="closeMDT" class="exit-btn">
+                    <i class="fas fa-power-off"></i> <span data-loc="ui_exit">خروج من النظام</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="mdt-main">
+            <!-- Dashboard / Citizen Search -->
+            <div id="dashboard" class="tab-content active">
+                <div class="content-header">
+                    <h2 data-loc="ui_db_header">قاعدة بيانات المواطنين</h2>
+                    <p data-loc="ui_db_subheader">ابحث عن السجلات الجنائية والمذكرات النشطة للأفراد</p>
+                </div>
+
+                <div class="search-bar-premium">
+                    <input type="text" id="searchInput" placeholder="ابحث بالاسم الأول أو الأخير..."
+                        data-loc-placeholder="ui_db_search_placeholder">
+                    <button class="btn" id="searchBtn"><i class="fas fa-search"></i> <span
+                            data-loc="ui_search">بحث</span></button>
+                </div>
+
+                <div id="searchResults" class="results-grid"></div>
+
+                <!-- Citizen Profile (Hidden by default) -->
+                <div id="citizenProfile" class="profile-card" style="display: none;">
+                    <div class="profile-header-premium">
+                        <div class="profile-photo-main">
+                            <img id="charImg" src="https://i.imgur.com/8K0pX8E.png" alt="Profile">
+                            <div class="photo-edit-overlay" onclick="$('#photoInputGroup').fadeToggle()">
+                                <i class="fas fa-camera"></i>
+                            </div>
+                        </div>
+                        <div class="profile-title">
+                            <h2 id="profName" data-loc="ui_name_label">الاسم</h2>
+                            <span id="profJob" data-loc="ui_job_label">الوظيفة</span>
+
+                            <div id="photoInputGroup" class="photo-input-group" style="display:none;">
+                                <input type="text" id="profCharImgUrl" placeholder="رابط الصورة (URL)..."
+                                    data-loc-placeholder="ui_photo_placeholder">
+                                <button class="btn btn-gold btn-sm" id="updateProfPhotoBtn"
+                                    data-loc="ui_change_photo">تغيير</button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="profCharIdentifier">
+                        <input type="hidden" id="profFirstName">
+                        <input type="hidden" id="profLastName">
+                    </div>
+
+                    <div class="profile-actions">
+                        <button class="btn btn-action" id="btnShowAddRecord">
+                            <i class="fas fa-file-signature"></i> <span data-loc="ui_issue_fine_btn">تسجيل مخالفة</span>
+                        </button>
+                        <button class="btn btn-action btn-danger-soft" id="btnShowAddWarrant">
+                            <i class="fas fa-handcuffs"></i> <span data-loc="ui_issue_warrant">إصدار مذكرة</span>
+                        </button>
+                        <button class="btn btn-action btn-gold" id="btnViewRecords">
+                            <i class="fas fa-book-open"></i> <span data-loc="ui_records_history">السجل الجنائي</span>
+                        </button>
+                    </div>
+
+                    <!-- Add Record Form -->
+                    <div id="addRecordForm" class="action-form" style="display:none;">
+                        <h3 class="form-title" data-loc="ui_new_fine_title">File New Incident Report</h3>
+                        <input type="hidden" id="recordServerId">
+                        <input type="text" id="recordTitle" placeholder="Incident Title"
+                            data-loc-placeholder="ui_fine_title_placeholder">
+                        <textarea id="recordDesc" placeholder="Incident details and evidence..."
+                            data-loc-placeholder="ui_fine_desc_placeholder"></textarea>
+                        <input type="text" id="recordCharges" placeholder="Formal Charges"
+                            data-loc-placeholder="ui_fine_charges_placeholder">
+                        <input type="number" id="jailTime" placeholder="Jail sentence (mins, 0 for none)"
+                            data-loc-placeholder="ui_jail_mins_placeholder">
+
+                        <div class="form-group custom-jail-selector">
+                            <label data-loc="ui_jail_location_label">موقع السجن المقترح:</label>
+                            <input type="hidden" id="jailLocation" value="None">
+                            <div id="jailOptionsContainer" class="jail-choices-grid">
+                                <div class="jail-choice-chip active" data-value="None" data-loc="ui_no_jail_option">--
+                                    لا يوجد سجن --</div>
+                            </div>
+                        </div>
+
+                        <div class="form-footer">
+                            <button class="btn btn-success" id="submitRecord" data-loc="ui_save_record">حفظ
+                                السجل</button>
+                            <button class="btn btn-secondary"
+                                onclick="document.getElementById('addRecordForm').style.display='none'"
+                                data-loc="ui_cancel">إلغاء</button>
+                        </div>
+                    </div>
+
+                    <!-- Add Warrant Form -->
+                    <div id="addWarrantForm" class="action-form" style="display:none;">
+                        <h3 class="form-title" data-loc="ui_warrant_issue">Authorize Arrest Warrant</h3>
+                        <div class="warrant-form-photo">
+                            <img id="warrantSuspectImg" src="https://i.imgur.com/8K0pX8E.png" alt="Suspect">
+                            <div class="photo-input-group">
+                                <input type="text" id="warrantCharImgUrl" placeholder="Suspect Photo URL..."
+                                    data-loc-placeholder="ui_suspect_photo_url">
+                                <button class="btn btn-gold btn-sm" id="updateWarrantPhotoBtn"
+                                    data-loc="ui_change_photo">Update Image</button>
+                            </div>
+                        </div>
+                        <textarea id="warrantReason" placeholder="Legal grounds & details..."
+                            data-loc-placeholder="ui_warrant_reason_placeholder"></textarea>
+                        <div class="form-footer">
+                            <button class="btn btn-danger" id="submitWarrant" data-loc="ui_issue_warrant">إصدار
+                                المذكرة</button>
+                            <button class="btn btn-secondary"
+                                onclick="document.getElementById('addWarrantForm').style.display='none'"
+                                data-loc="ui_cancel">إلغاء</button>
+                        </div>
+                    </div>
+
+                    <!-- Past Records List -->
+                    <div id="pastRecordsList" style="display:none; margin-top:30px;">
+                        <h3 class="section-title"
+                            style="color:#ffffff; font-weight:800; font-size:22px; margin-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;"
+                            data-loc="ui_records_archive">Criminal Archive</h3>
+                        <div id="recordsContainer" class="records-stack"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warrants Tab -->
+            <div id="warrants" class="tab-content">
+                <div class="content-header">
+                    <h2 data-loc="ui_warrants">Active Warrants</h2>
+                    <p data-loc="ui_db_subheader">Search and verify criminal backgrounds</p>
+                </div>
+                <div id="warrantsContainer" class="warrants-grid"></div>
+            </div>
+
+            <!-- Roster Tab -->
+            <div id="roster" class="tab-content">
+                <div class="content-header">
+                    <h2 data-loc="ui_personnel_mgmt">Personnel Management</h2>
+                    <p data-loc="ui_cop_status">Officer Status</p>
+                </div>
+                <div class="roster-split">
+                    <!-- Hiring Form (Moved to Top) -->
+                    <div class="manage-form-premium glass-card"
+                        style="width: 100%; max-width: 600px; margin-bottom: 50px;">
+                        <h3 class="shimmer-text" style="text-align: center;" data-loc="ui_hiring_form_title"><i
+                                class="fas fa-user-plus"></i> Commission / Promote (Manual)</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px; text-align: center;"
+                            data-loc="ui_hiring_form_desc">
+                            Enter Server ID and target rank number</p>
+                        <input type="number" id="hireTargetSrc" placeholder="Server ID"
+                            data-loc-placeholder="ui_player_id_placeholder">
+                        <input type="number" id="hireTargetGrade" placeholder="Grade Rank (Number)"
+                            data-loc-placeholder="ui_grade_no_placeholder">
+                        <button class="btn btn-gold" id="submitHireBtn" style="width:100%; margin-top: 10px;"
+                            data-loc="ui_update_status_btn">Update Status</button>
+                    </div>
+
+                    <!-- Officers List (Moved below) -->
+                    <div class="search-box" style="margin-bottom: 20px; width: 100%;">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="staffSearchInput" data-loc-placeholder="ui_staff_search_placeholder"
+                            placeholder="ابحث عن موظف بالاسم أو الـ ID...">
+                        <button id="clearStaffSearch"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div id="bossOfficersList" class="results-grid" style="width: 100%; margin-bottom: 40px;"></div>
+                </div>
+            </div>
+
+            <!-- Active Officers Tab -->
+            <div id="active-officers" class="tab-content">
+                <div class="content-header">
+                    <h2 data-loc="ui_active_units_title">Connected Units</h2>
+                    <p data-loc="ui_active_units_desc">Live unit status reports</p>
+                </div>
+                <div id="officersList" class="results-grid">
+                    <!-- Rendered by script.js -->
+                </div>
+            </div>
+
+            <div id="jailed-citizens" class="tab-content">
+                <div class="content-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h2 class="shimmer-text" data-loc="ui_jailed">Inmate Management</h2>
+                        <p data-loc="ui_db_subheader">Search and verify criminal backgrounds</p>
+                    </div>
+                    <button class="btn btn-blue" id="btnRefreshJailed" style="min-width: unset; padding: 10px 20px;">
+                        <span data-loc="ui_refresh_list">Refresh List</span> <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div id="jailedList" class="results-grid">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="interaction-menu" style="display: none;">
+        <div class="mdt-header">
+            <h2 class="mdt-title" data-loc="ui_intervention_system">Tactical Support Menu</h2>
+        </div>
+        <div class="interaction-content">
+            <button class="menu-btn" id="btnSearch" data-loc="ui_frisk">تفتيش اللاعب</button>
+            <button class="menu-btn" id="btnCuff" data-loc="ui_cuff">⛓ كلبشة</button>
+            <button class="menu-btn" id="btnUncuff" data-loc="ui_uncuff">🔓 فك الكلبشات</button>
+            <button class="menu-btn" id="btnEscort" data-loc="ui_escort_toggle">Escort (Grab/Release)</button>
+            <button class="menu-btn" id="btnPutInVehicle" data-loc="ui_put_in_veh">Seat in Vehicle</button>
+            <button class="menu-btn" id="btnTakeOutVehicle" data-loc="ui_take_out_veh">Remove from Vehicle</button>
+            <button class="menu-btn" id="btnCheckWanted" data-loc="ui_security_query">Security Query (Check
+                Warrants)</button>
+            <button class="menu-btn" id="btnFine" data-loc="ui_issue_fine">إعطاء غرامة</button>
+            <button class="menu-btn btn-danger" id="btnCloseMenuZ" data-loc="ui_close">إغلاق</button>
+        </div>
+    </div>
+
+    <div id="fine-dialog" style="display: none;">
+        <h3 data-loc="ui_issue_fine">Issue Monetary Charge</h3>
+        <input type="number" id="fineTargetId" placeholder="Server ID (Leave empty for nearest)"
+            data-loc-placeholder="ui_id_search_placeholder">
+        <input type="text" id="fineReason" placeholder="Reason" data-loc-placeholder="ui_fine_reason">
+        <input type="number" id="fineAmount" placeholder="Amount ($)" data-loc-placeholder="ui_fine_amount">
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="btn btn-success" id="submitFineBtn" style="flex:1;" data-loc="ui_issue_fine">تأكيد
+                الغرامة</button>
+            <button class="btn btn-danger" id="cancelFineBtn" style="flex:1;" data-loc="ui_close">إغلاق</button>
+        </div>
+    </div>
+
+    <div id="message-dialog" style="display: none;">
+        <h3 data-loc="ui_message">إرسال رسالة خاصة للضباط</h3>
+        <p id="msgTargetName"
+            style="text-align:center; color:var(--primary-gold); font-size: 1.1rem; margin-top: -10px;"></p>
+        <input type="hidden" id="msgTargetId">
+        <textarea id="msgContent" placeholder="Type your dispatch message here..."
+            style="margin-top: 15px; min-height: 100px;" data-loc-placeholder="ui_send_msg_placeholder"></textarea>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="btn btn-success" id="sendMsgBtn" style="flex:1;" data-loc="ui_send">إرسال الرسالة</button>
+            <button class="btn btn-danger" id="cancelMsgBtn" style="flex:1;" data-loc="ui_close">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- Jail Timer Overlay -->
+    <div id="jail-timer-overlay" style="display: none;">
+        <div class="jail-timer-header">✧ <span data-loc="ui_jail_sentence">محكومية السجن</span> ✧</div>
+        <div id="jailName" class="jail-timer-name" data-loc="ui_loading">جارِ التحميل...</div>
+        <div class="jail-timer-time"><span id="jailMin">00</span>:<span id="jailSec">00</span></div>
+        <div class="jail-timer-footer" data-loc="ui_jail_auto_release">سيتم إطلاق سراحك تلقائياً عند انتهاء الوقت</div>
+    </div>
+
+    <!-- Radical Tactical HUD Interface -->
+    <div id="armory-menu" class="tactical-hud" style="display:none;">
+        <!-- HUD Header Overlay -->
+        <header class="hud-top-bar">
+            <div class="hud-logo">
+                <i class="fas fa-shield-halved gold-glow"></i>
+                <div class="hud-title-stack">
+                    <h1 data-loc="ui_armory_title">ترسانة الشريف المركزية</h1>
+                    <p>LEGENDARY TACTICAL ARCHIVE v4.0</p>
+                </div>
+            </div>
+
+            <nav class="hud-navigation">
+                <button class="hud-nav-btn active" data-target="standardIssueTab">
+                    <span class="nav-icon"><i class="fas fa-gun"></i></span>
+                    <span class="nav-text" data-loc="ui_standard_issue">العتاد الميداني</span>
+                </button>
+                <button class="hud-nav-btn" data-target="strategicSupportTab" id="vehicleTabBtn">
+                    <span class="nav-icon"><i class="fas fa-truck-monster"></i></span>
+                    <span class="nav-text" data-loc="ui_strategic_support">الدعم الاستراتيجي</span>
+                </button>
+            </nav>
+
+            <div class="hud-status-pill">
+                <div class="scanning-beam"></div>
+                <i class="fas fa-fingerprint"></i> <span data-loc="ui_authorized">مصرح بالنشاط</span>
+            </div>
+        </header>
+
+        <!-- Main HUD Body: Centric Visualization -->
+        <main class="hud-body">
+            <div class="tab-panels">
+                <!-- Tab 1: Weapons Visualizer -->
+                <div id="standardIssueTab" class="hud-panel active">
+                    <div class="hud-asset-grid" id="weaponGallery">
+                        <!-- Populated with Tactical HUD Cards via script.js -->
+                    </div>
+
+                    <!-- Deployment Button restricted to this tab -->
+                    <div class="deployment-center">
+                        <button class="hud-equip-trigger" id="claimKitBtn" type="button">
+                            <div class="trigger-glow"></div>
+                            <div class="trigger-inner">
+                                <i class="fas fa-bolt"></i>
+                                <div class="trigger-txt">
+                                    <span class="t-main" data-loc="ui_claim_kit">استلام العتاد</span>
+                                    <span class="t-sub">DEPLOY FULL TACTICAL LOADOUT</span>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Vehicle Units -->
+                <div id="strategicSupportTab" class="hud-panel">
+                    <div id="heavyVehiclesContainer">
+                        <div id="vehicleGallery" class="hud-asset-grid">
+                            <!-- Populated via script.js -->
+                        </div>
+                    </div>
+
+                    <!-- HUD Restricted Access Overly -->
+                    <div id="vehiclesLockedOverlay" class="hud-lock-screen" style="display:none;">
+                        <div class="lock-vortex"></div>
+                        <i class="fas fa-circle-exclamation"></i>
+                        <h2 data-loc="notify_not_police">وصول مقيد (رتبة 9+)</h2>
+                        <p data-loc="ui_cop_status">نظام التشفير يتطلب بصمة المستوى Assistant Chief</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <!-- Bottom Tactical Control Wing -->
+        <footer class="hud-bottom-wing">
+            <div class="hud-wing-content">
+                <div class="officer-identity">
+                    <div class="id-badge"><i class="fas fa-id-badge"></i></div>
+                    <div class="id-info">
+                        <span class="id-label" data-loc="ui_dashboard">الضابط المناوب</span>
+                        <span id="armoryOfficerName" class="id-value" data-loc="ui_loading">CHIEF OF POLICE</span>
+                    </div>
+                </div>
+
+                <!-- Deployment Center Moved to Tabs -->
+
+                <div class="exit-module">
+                    <button class="hud-exit-btn" id="closeArmoryBtn">
+                        <i class="fas fa-power-off"></i> <span data-loc="ui_close">الفصل التام</span>
+                    </button>
+                </div>
+            </div>
+        </footer>
+
+        <!-- HUD Overlay Accents -->
+        <div class="hud-corner top-left"></div>
+        <div class="hud-corner top-right"></div>
+        <div class="hud-corner bottom-left"></div>
+        <div class="hud-corner bottom-right"></div>
+    </div>
+    </div>
+
+    <!-- Notifications System -->
+    <div id="notifications-container"></div>
+
+    </div>
+
+    <!-- Interaction Prompt (Standard RedM Style) -->
+    <div id="interaction-prompt" style="display: none;">
+        <div class="prompt-container">
+            <div class="prompt-content">
+                <div class="prompt-header">
+                    <span id="prompt-title">OPEN DUTY</span>
+                    <div class="prompt-key-box">
+                        <span id="prompt-key">G</span>
+                    </div>
+                </div>
+                <div class="prompt-divider-line"></div>
+                <div class="prompt-footer-text" id="prompt-subtitle">POLICE STATION</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal (Z: Drive Production) -->
+    <div id="confirmModal" class="modal-overlay" style="display:none;">
+        <div class="confirm-content glass-card shimmer-border">
+            <div class="confirm-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <h3 data-loc="ui_jail_location_label">تأكيد الإجراء</h3>
+            <p id="confirmText" data-loc="ui_db_subheader">هل أنت متأكد من هذا الإجراء؟</p>
+            <div class="confirm-actions">
+                <button id="confirmYes" class="btn btn-danger" data-loc="ui_send">نعم، تأكيد</button>
+                <button id="confirmNo" class="btn btn-secondary" data-loc="ui_cancel">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Duty Menu Modal -->
+    <div id="duty-menu" style="display: none;">
+        <div class="duty-card">
+            <div class="duty-header">
+                <i class="fas fa-shield-alt"></i>
+                <h2 data-loc="prompt_duty">نظام إدارة الخدمة</h2>
+                <div class="duty-divider"></div>
+            </div>
+            <div class="duty-options">
+                <button class="duty-btn duty-on" id="onDutyBtn">
+                    <span class="btn-icon">🛡️</span>
+                    <span class="btn-text" data-loc="ui_on">بدء المناوبة</span>
+                    <span class="btn-sub">On Duty</span>
+                </button>
+                <button class="duty-btn duty-off" id="offDutyBtn">
+                    <span class="btn-icon">🚶</span>
+                    <span class="btn-text" data-loc="ui_off">إنهاء المناوبة</span>
+                    <span class="btn-sub">Off Duty</span>
+                </button>
+            </div>
+            <button class="duty-close-btn" id="closeDutyMenu" data-loc="ui_close">إغلاق القائمة</button>
+        </div>
+    </div>
+
+    <!-- ===== SEARCH / FRISK PANEL ===== -->
+    <div id="searchPanel" class="search-panel-overlay" style="display:none;">
+        <div class="search-panel-box">
+            <div class="search-panel-header">
+                <div class="search-header-icon">🔍</div>
+                <div class="search-header-info">
+                    <div class="search-header-title" data-loc="ui_frisk">تفتيش اللاعب</div>
+                    <div class="search-header-name" id="searchTargetName">—</div>
+                </div>
+                <button class="search-close-btn" id="searchCloseBtn">✕</button>
+            </div>
+            <div class="search-items-count" id="searchItemsCount" data-loc="ui_bag_empty">لا توجد أغراض</div>
+            <div class="search-items-grid" id="searchItemsGrid">
+                <div class="search-empty">
+                    <span>📦</span>
+                    <p data-loc="ui_bag_empty">لا يحمل هذا الشخص أي أغراض</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* ===== SEARCH PANEL STYLES ===== */
+        .search-panel-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(4px);
+            animation: searchFadeIn 0.25s ease;
+        }
+
+        @keyframes searchFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .search-panel-box {
+            background: linear-gradient(145deg, #0d1117, #161b22);
+            border: 1px solid rgba(0, 200, 255, 0.25);
+            border-radius: 16px;
+            width: 560px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 180, 255, 0.15), 0 20px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .search-panel-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 20px;
+            background: linear-gradient(90deg, rgba(0, 180, 255, 0.12), transparent);
+            border-bottom: 1px solid rgba(0, 180, 255, 0.2);
+        }
+
+        .search-header-icon {
+            font-size: 28px;
+            width: 48px;
+            height: 48px;
+            background: rgba(0, 180, 255, 0.15);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(0, 180, 255, 0.3);
+            flex-shrink: 0;
+        }
+
+        .search-header-info {
+            flex: 1;
+        }
+
+        .search-header-title {
+            font-size: 11px;
+            color: rgba(0, 200, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-family: Arial, sans-serif;
+            margin-bottom: 4px;
+        }
+
+        .search-header-name {
+            font-size: 19px;
+            font-weight: bold;
+            color: #e8f4fd;
+            font-family: Arial, sans-serif;
+        }
+
+        .search-close-btn {
+            background: rgba(255, 60, 60, 0.15);
+            border: 1px solid rgba(255, 60, 60, 0.3);
+            color: #ff6b6b;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .search-close-btn:hover {
+            background: rgba(255, 60, 60, 0.3);
+            border-color: rgba(255, 60, 60, 0.6);
+            transform: scale(1.05);
+        }
+
+        .search-items-count {
+            padding: 10px 20px;
+            font-size: 12px;
+            color: rgba(0, 200, 255, 0.6);
+            font-family: Arial, sans-serif;
+            background: rgba(0, 180, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            letter-spacing: 0.5px;
+        }
+
+        .search-items-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding: 16px;
+            overflow-y: auto;
+            max-height: calc(80vh - 140px);
+        }
+
+        .search-items-grid::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .search-items-grid::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .search-items-grid::-webkit-scrollbar-thumb {
+            background: rgba(0, 180, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .search-item-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 10px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            cursor: default;
+        }
+
+        .search-item-card:hover {
+            background: rgba(0, 180, 255, 0.08);
+            border-color: rgba(0, 180, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .search-item-img {
+            width: 52px;
+            height: 52px;
+            object-fit: contain;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px;
+        }
+
+        .search-item-img-fallback {
+            width: 52px;
+            height: 52px;
+            background: rgba(0, 180, 255, 0.1);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            border: 1px solid rgba(0, 180, 255, 0.2);
+        }
+
+        .search-item-label {
+            font-size: 11px;
+            color: #d0e8f0;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            font-weight: 500;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        .search-item-amount {
+            font-size: 10px;
+            color: rgba(0, 200, 255, 0.8);
+            background: rgba(0, 180, 255, 0.12);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+        }
+
+        .search-item-weapon {
+            border-color: rgba(255, 150, 50, 0.25);
+        }
+
+        .search-item-weapon .search-item-img-fallback {
+            background: rgba(255, 150, 50, 0.1);
+            border-color: rgba(255, 150, 50, 0.3);
+        }
+
+        .search-item-weapon .search-item-amount {
+            background: rgba(255, 150, 50, 0.15);
+            color: #ffa060;
+        }
+
+        .search-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 50px 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-family: Arial, sans-serif;
+        }
+
+        .search-empty span {
+            font-size: 40px;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .search-empty p {
+            font-size: 14px;
+        }
+
+        .search-qty-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            text-align: center;
+            margin-bottom: 5px;
+            padding: 4px;
+            border-radius: 4px;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+        }
+
+        .search-qty-input:focus {
+            outline: none;
+            border-color: rgba(26, 170, 170, 0.5);
+        }
+
+        .search-take-btn {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(255, 80, 80, 0.2), rgba(220, 50, 50, 0.15));
+            border: 1px solid rgba(255, 80, 80, 0.35);
+            color: #ff8080;
+            border-radius: 6px;
+            padding: 4px 0;
+            font-size: 10px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+            margin-top: 2px;
+        }
+
+        .search-take-btn:hover {
+            background: linear-gradient(135deg, rgba(255, 80, 80, 0.4), rgba(220, 50, 50, 0.3));
+            border-color: rgba(255, 80, 80, 0.7);
+            color: #fff;
+            transform: scale(1.02);
+            box-shadow: 0 0 8px rgba(255, 80, 80, 0.3);
+        }
+
+        .search-item-card:hover .search-take-btn {
+            border-color: rgba(255, 100, 100, 0.5);
+        }
+    </style>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="script.js?v=Legendary_103"></script>
+</body>
+
+</html>
