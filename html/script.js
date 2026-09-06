@@ -35,6 +35,20 @@ window.addEventListener('message', function(event) {
             cuffLabel.textContent = 'Handcuff Individual';
         }
 
+        const carryBtn = document.getElementById('btn-carry');
+        const carryLabel = document.getElementById('carry-action-label');
+
+        if (data.isCuffed) {
+            carryBtn.style.display = 'flex';
+            if (data.isCarrying) {
+                carryLabel.textContent = 'Drop Individual';
+            } else {
+                carryLabel.textContent = 'Carry / Escort';
+            }
+        } else {
+            carryBtn.style.display = 'none';
+        }
+
         menuWrapper.classList.remove('hidden');
     } else if (data.action === 'closeTargetMenu') {
         menuWrapper.classList.add('hidden');
@@ -57,6 +71,16 @@ document.getElementById('btn-handcuff').addEventListener('click', function() {
     const menuWrapper = document.getElementById('target-menu-wrapper');
     menuWrapper.classList.add('hidden');
     fetch(`https://${GetParentResourceName()}/actionHandcuff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    });
+});
+
+document.getElementById('btn-carry').addEventListener('click', function() {
+    const menuWrapper = document.getElementById('target-menu-wrapper');
+    menuWrapper.classList.add('hidden');
+    fetch(`https://${GetParentResourceName()}/actionCarry`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})

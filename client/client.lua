@@ -3,6 +3,12 @@ local spawnedBlips = {}
 local isPoliceOnDuty = false
 local isHandcuffed = false
 
+local isCarrying = false
+local carriedPedHandle = nil
+local carriedPlayerServerId = nil
+local isBeingCarried = false
+local carrierOfficerSrc = nil
+
 local dutyPromptGroup = GetRandomIntInRange(0, 0xffffff)
 local dutyPromptHandle = nil
 
@@ -289,6 +295,97 @@ RegisterNUICallback("actionHandcuff", function(data, cb)
     cb("ok")
 end)
 
+local function tryCarryTarget()
+    if not isPoliceOnDuty then
+        notify("You must be ON duty to carry or escort suspects!")
+        return
+    end
+
+    local myPed = PlayerPedId()
+
+    if isCarrying then
+        if carriedPlayerServerId then
+            TriggerServerEvent("coi_police:server:toggleCarry", carriedPlayerServerId)
+            carriedPlayerServerId = nil
+        elseif carriedPedHandle and DoesEntityExist(carriedPedHandle) then
+            DetachEntity(carriedPedHandle, true, true)
+            FreezeEntityPosition(carriedPedHandle, true)
+            carriedPedHandle = nil
+        end
+        isCarrying = false
+        notify("You stopped carrying the individual.")
+        return
+    end
+
+    local cuffDist = (Config and Config.CuffDistance) or 5.0
+    local closestPed, closestDist, isPlayer, targetServerId = GetClosestTargetPed(cuffDist)
+
+    if closestPed ~= -1 and DoesEntityExist(closestPed) then
+        local isTargetCuffed = false
+        if isPlayer and targetServerId then
+            isTargetCuffed = targetCuffStates[targetServerId] or false
+        else
+            isTargetCuffed = cuffedNPCs[closestPed] or false
+        end
+
+        if not isTargetCuffed then
+            notify("Target must be handcuffed before carrying!")
+            return
+        end
+
+        if isPlayer and targetServerId then
+            TriggerServerEvent("coi_police:server:toggleCarry", targetServerId)
+            isCarrying = true
+            carriedPlayerServerId = targetServerId
+            notify("You are carrying/escorting the player.")
+        else
+            isCarrying = true
+            carriedPedHandle = closestPed
+            FreezeEntityPosition(closestPed, false)
+            AttachEntityToEntity(closestPed, myPed, 0, 0.2, 0.45, 0.0, 0.0, 0.0, 0.0, true, false, false, false, 2, true)
+            notify("You are carrying/escorting the individual.")
+        end
+    else
+        notify("No target nearby to carry!")
+    end
+end
+
+RegisterNUICallback("actionCarry", function(data, cb)
+    SetNuiFocus(false, false)
+    tryCarryTarget()
+    cb("ok")
+end)
+
+RegisterCommand("carry", function()
+    tryCarryTarget()
+end, false)
+
+RegisterKeyMapping("carry", "Carry / Escort Handcuffed Suspect", "keyboard", "R")
+
+RegisterNetEvent("coi_police:client:syncCarryTarget", function(officerSrc)
+    isBeingCarried = not isBeingCarried
+    local playerPed = PlayerPedId()
+
+    if isBeingCarried then
+        carrierOfficerSrc = officerSrc
+        local officerPlayer = GetPlayerFromServerId(officerSrc)
+        local officerPed = GetPlayerPed(officerPlayer)
+
+        if DoesEntityExist(officerPed) then
+            FreezeEntityPosition(playerPed, false)
+            AttachEntityToEntity(playerPed, officerPed, 0, 0.2, 0.45, 0.0, 0.0, 0.0, 0.0, true, false, false, false, 2, true)
+            notify("You are being carried / escorted by the Sheriff.")
+        end
+    else
+        carrierOfficerSrc = nil
+        DetachEntity(playerPed, true, true)
+        if isHandcuffed then
+            FreezeEntityPosition(playerPed, true)
+        end
+        notify("You were dropped.")
+    end
+end)
+
 RegisterNUICallback("actionPutInJail", function(data, cb)
     SetNuiFocus(false, false)
     tryPutTargetInJail()
@@ -333,6 +430,12 @@ function tryPutTargetInJail()
         local c = selectedCell.coords
         local vecCoords = { x = c.x, y = c.y, z = c.z, heading = c.w or c.h or 80.0 }
 
+        if isCarrying then
+            isCarrying = false
+            carriedPedHandle = nil
+            carriedPlayerServerId = nil
+        end
+
         if isPlayer and targetServerId then
             TriggerServerEvent("coi_police:server:putInJail", targetServerId, vecCoords)
             notify("You put the player in " .. (selectedCell.name or "Cell") .. ".")
@@ -352,9 +455,17 @@ end
 RegisterNetEvent("coi_police:client:teleportToCell", function(coords)
     if not coords then return end
     local ped = PlayerPedId()
+    if isBeingCarried then
+        isBeingCarried = false
+        carrierOfficerSrc = nil
+        DetachEntity(ped, true, true)
+    end
     SetEntityCoords(ped, coords.x, coords.y, coords.z, false, false, false, false)
     if coords.heading then
         SetEntityHeading(ped, coords.heading)
+    end
+    if isHandcuffed then
+        FreezeEntityPosition(ped, true)
     end
     notify("You have been locked in a jail cell.")
 end)
@@ -384,7 +495,8 @@ local function tryOpenTargetMenu()
             action = "openTargetMenu",
             targetName = nameStr,
             isPlayer = isPlayer,
-            isCuffed = isTargetCuffed
+            isCuffed = isTargetCuffed,
+            isCarrying = isCarrying
         })
     else
         notify("No target nearby to interact with!")
@@ -409,7 +521,9 @@ RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
         SetEnableHandcuffs(playerPed, true)
         Citizen.InvokeNative(0x1913AE2D2FB18414, playerPed, 128, true) -- SetPedConfigFlag 128
         SetCurrentPedWeapon(playerPed, `WEAPON_UNARMED`, true)
-        FreezeEntityPosition(playerPed, true)
+        if not isBeingCarried then
+            FreezeEntityPosition(playerPed, true)
+        end
 
         local usedDict, usedName = playAnimWithFallback(playerPed, targetAnims, 8.0, -8.0, -1, 31)
 
@@ -442,6 +556,11 @@ RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
         end)
     else
         notify("You have been uncuffed.")
+        if isBeingCarried then
+            isBeingCarried = false
+            carrierOfficerSrc = nil
+            DetachEntity(playerPed, true, true)
+        end
         SetEnableHandcuffs(playerPed, false)
         Citizen.InvokeNative(0x1913AE2D2FB18414, playerPed, 128, false)
         FreezeEntityPosition(playerPed, false)
@@ -724,27 +843,37 @@ CreateThread(function()
                 end
             end
 
-            -- 2. ON-DUTY HANDCUFF INTERACTION (PLAYERS & NPC PEDS)
+            -- 2. ON-DUTY HANDCUFF & CARRY INTERACTION (PLAYERS & NPC PEDS)
             if isPoliceOnDuty then
-                local closestPed, closestDist, isPlayer, targetServerId = GetClosestTargetPed(cuffDist)
-                if closestPed ~= -1 and DoesEntityExist(closestPed) then
+                if isCarrying then
                     sleep = 0
+                    DrawText3D(playerCoords.x, playerCoords.y, playerCoords.z + 0.9, "[Hold R] Drop / Stop Carrying")
+                else
+                    local closestPed, closestDist, isPlayer, targetServerId = GetClosestTargetPed(cuffDist)
+                    if closestPed ~= -1 and DoesEntityExist(closestPed) then
+                        sleep = 0
 
-                    local isTargetCuffed = false
-                    if isPlayer and targetServerId then
-                        isTargetCuffed = targetCuffStates[targetServerId] or false
-                    else
-                        isTargetCuffed = cuffedNPCs[closestPed] or false
-                    end
+                        local isTargetCuffed = false
+                        if isPlayer and targetServerId then
+                            isTargetCuffed = targetCuffStates[targetServerId] or false
+                        else
+                            isTargetCuffed = cuffedNPCs[closestPed] or false
+                        end
 
-                    local cuffText = isTargetCuffed and "Uncuff Individual" or "Handcuff Individual"
+                        if isTargetCuffed then
+                            local targetCoords = GetEntityCoords(closestPed)
+                            DrawText3D(targetCoords.x, targetCoords.y, targetCoords.z + 0.9, "[Hold R] Carry Suspect")
+                        end
 
-                    createCuffPrompt(cuffText)
-                    PromptSetActiveGroupThisFrame(cuffPromptGroup, playerGroupTitle, 0, 0, 0, 0)
+                        local cuffText = isTargetCuffed and "Uncuff Individual" or "Handcuff Individual"
 
-                    if isCuffPromptPressed() then
-                        tryOpenTargetMenu()
-                        Wait(1000)
+                        createCuffPrompt(cuffText)
+                        PromptSetActiveGroupThisFrame(cuffPromptGroup, playerGroupTitle, 0, 0, 0, 0)
+
+                        if isCuffPromptPressed() then
+                            tryOpenTargetMenu()
+                            Wait(1000)
+                        end
                     end
                 end
             end
