@@ -31,22 +31,21 @@ local function setPoliceOutfit(onDuty)
             for _, item in ipairs(outfitList) do
                 local hash = type(item) == "string" and GetHashKey(item) or item
                 if hash and hash ~= 0 then
-                    local categoryHash = Citizen.InvokeNative(0x5FF9A878C3D115B8, hash, not isMale, true)
-                    if categoryHash and categoryHash ~= 0 then
-                        Citizen.InvokeNative(0x59BD177A1A48600A, playerPed, categoryHash)
-                        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, hash, true, true, true)
-                    else
-                        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, hash, true, true, true)
-                    end
+                    -- ApplyShopItemToPed(ped, hash, immediatly, isMp, p4)
+                    Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, hash, true, true, true)
                 end
             end
+            -- Refresh & update ped variation & active meta ped components
             Citizen.InvokeNative(0x704C908E9C405136, playerPed)
-            Citizen.InvokeNative(0xCC8CA3E88256E58F, playerPed, 0, 1, 1, 1, 0)
+            Citizen.InvokeNative(0xCC8CA3E88256E58F, playerPed, false, true, true, true, false)
+            Citizen.InvokeNative(0xAAB86462966168CE, playerPed, true)
         end
     else
+        -- Restore civilian skin & clothes on going off duty
         TriggerEvent("vorp_character:reloadSkin")
         TriggerServerEvent("vorp_character:LoadUserPed")
         ExecuteCommand("rc")
+        ExecuteCommand("refreshskin")
     end
 end
 

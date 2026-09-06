@@ -11,23 +11,23 @@ POLICE_NPCS = {
 
 Config = {
     InteractionDistance = 3.5,
-    Key = 0x760A9C6F, -- Key 'G' (INPUT_CONTEXT / INPUT_INTERACT_ANIMAL)
+    Key = 0x760A9C6F, -- Key 'G' (INPUT_CONTEXT)
 
     -- Police Uniform Clothes / Shop Item Hashes
     Outfits = {
         Male = {
-            0x1FC12C9C, -- Police Badge / Star
-            0x5F197607, -- Sheriff Hat
-            0x1F2A7996, -- Shirt
-            0x3B4031B1, -- Pants
-            0x232E4968  -- Boots
+            0x1FC12C9C, -- Police Star / Badge
+            0x992B2E65, -- Sheriff Hat
+            0x64319808, -- Shirt
+            0x50720448, -- Pants
+            0x78E9A4B8  -- Boots
         },
         Female = {
-            0x929677D,  -- Police Badge / Star
-            0x5F197607, -- Sheriff Hat
-            0x1F2A7996, -- Shirt
-            0x3B4031B1, -- Pants
-            0x232E4968  -- Boots
+            0x929677D,  -- Police Star / Badge
+            0x992B2E65, -- Sheriff Hat
+            0x64319808, -- Shirt
+            0x50720448, -- Pants
+            0x78E9A4B8  -- Boots
         }
     }
 }
