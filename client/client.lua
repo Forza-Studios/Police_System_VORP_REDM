@@ -43,16 +43,31 @@ local function DrawText3D(x, y, z, text)
     end
 end
 
--- Robust Target Ped Detection using GetGamePool('CPed')
+-- Robust Target Ped Detection using GetGamePool('CPed') with FindFirstPed fallback
 local function GetClosestTargetPed(maxDistance)
     local myPed = PlayerPedId()
     local myCoords = GetEntityCoords(myPed)
     local closestPed = -1
-    local closestDist = maxDistance or 4.0
+    local closestDist = maxDistance or 5.0
     local isPlayer = false
     local targetServerId = nil
 
-    local peds = GetGamePool('CPed')
+    local peds = {}
+    local successPool, pool = pcall(function() return GetGamePool('CPed') end)
+    if successPool and type(pool) == "table" and #pool > 0 then
+        peds = pool
+    else
+        local handle, ped = FindFirstPed()
+        local success = true
+        if handle and handle ~= -1 then
+            repeat
+                table.insert(peds, ped)
+                success, ped = FindNextPed(handle)
+            until not success
+            EndFindPed(handle)
+        end
+    end
+
     for _, ped in ipairs(peds) do
         if DoesEntityExist(ped) and ped ~= myPed and not IsEntityDead(ped) then
             local isDutyNPC = false
@@ -64,8 +79,9 @@ local function GetClosestTargetPed(maxDistance)
             end
 
             if not isDutyNPC then
-                local dist = #(myCoords - GetEntityCoords(ped))
-                if dist < closestDist then
+                local pedCoords = GetEntityCoords(ped)
+                local dist = #(myCoords - pedCoords)
+                if dist <= closestDist then
                     closestDist = dist
                     closestPed = ped
                     if IsPedAPlayer(ped) then
@@ -169,15 +185,43 @@ local function isCuffPromptPressed()
     return false
 end
 
-local function playOfficerCuffAnim()
-    local dict = "script_re@cuffs"
-    RequestAnimDict(dict)
-    local timeout = 0
-    while not HasAnimDictLoaded(dict) and timeout < 100 do
-        Wait(10)
-        timeout = timeout + 1
+local officerAnims = {
+    { dict = "script_proc@robbing@cuffs", name = "cuff_cop" },
+    { dict = "script_re@cuffs", name = "cuff_cop" },
+    { dict = "mech_inventory@cuffs", name = "cuff_cop" },
+    { dict = "cnv_camp@generic@cuffs", name = "cuff_cop" },
+    { dict = "script_re@cuffs", name = "cuffed_loop" }
+}
+
+local targetAnims = {
+    { dict = "script_proc@robbing@cuffs", name = "cuffed_loop" },
+    { dict = "script_re@cuffs", name = "cuffed_loop" },
+    { dict = "mech_inventory@cuffs", name = "cuffed_loop" },
+    { dict = "script_story@sal1@ig@ig11_cuffedsimon", name = "cuffed_loop" },
+    { dict = "script_proc@robberies@shop@rhodes@gunsmith@inside", name = "cuffed_loop" }
+}
+
+local function playAnimWithFallback(ped, animList, blendIn, blendOut, duration, flag)
+    local targetPed = ped or PlayerPedId()
+    for _, anim in ipairs(animList) do
+        local dict = anim.dict
+        local name = anim.name
+        RequestAnimDict(dict)
+        local timeout = 0
+        while not HasAnimDictLoaded(dict) and timeout < 25 do
+            Wait(10)
+            timeout = timeout + 1
+        end
+        if HasAnimDictLoaded(dict) then
+            TaskPlayAnim(targetPed, dict, name, blendIn or 8.0, blendOut or -8.0, duration or -1, flag or 31, 0.0, false, false, false)
+            return dict, name
+        end
     end
-    TaskPlayAnim(PlayerPedId(), dict, "cuff_cop", 8.0, -8.0, 2500, 25, 0, false, false, false)
+    return nil, nil
+end
+
+local function playOfficerCuffAnim()
+    playAnimWithFallback(PlayerPedId(), officerAnims, 8.0, -8.0, 3000, 25)
 end
 
 local function cuffNPCPed(npcPed, cuffed)
@@ -185,26 +229,60 @@ local function cuffNPCPed(npcPed, cuffed)
 
     if cuffed then
         SetEnableHandcuffs(npcPed, true)
+        Citizen.InvokeNative(0x1913AE2D2FB18414, npcPed, 128, true) -- SetPedConfigFlag 128 (Handcuffed)
         SetBlockingOfNonTemporaryEvents(npcPed, true)
         FreezeEntityPosition(npcPed, true)
 
-        local dict = "script_re@cuffs"
-        RequestAnimDict(dict)
-        local timeout = 0
-        while not HasAnimDictLoaded(dict) and timeout < 100 do
-            Wait(10)
-            timeout = timeout + 1
-        end
-        TaskPlayAnim(npcPed, dict, "cuffed_loop", 8.0, -8.0, -1, 31, 0, false, false, false)
+        playAnimWithFallback(npcPed, targetAnims, 8.0, -8.0, -1, 31)
         notify("You handcuffed the individual.")
     else
         SetEnableHandcuffs(npcPed, false)
+        Citizen.InvokeNative(0x1913AE2D2FB18414, npcPed, 128, false) -- SetPedConfigFlag 128
         SetBlockingOfNonTemporaryEvents(npcPed, false)
         FreezeEntityPosition(npcPed, false)
         ClearPedTasks(npcPed)
         notify("You uncuffed the individual.")
     end
 end
+
+-- CORE CUFF TRIGGER FUNCTION (Invoked by Key 'L', /cuff command, or Prompt)
+local function tryCuffTarget()
+    if not isPoliceOnDuty then
+        notify("You must be ON duty to handcuff!")
+        return
+    end
+
+    local cuffDist = (Config and Config.CuffDistance) or 5.0
+    local closestPed, closestDist, isPlayer, targetServerId = GetClosestTargetPed(cuffDist)
+
+    if closestPed ~= -1 and DoesEntityExist(closestPed) then
+        local isTargetCuffed = false
+        if isPlayer and targetServerId then
+            isTargetCuffed = targetCuffStates[targetServerId] or false
+        else
+            isTargetCuffed = cuffedNPCs[closestPed] or false
+        end
+
+        playOfficerCuffAnim()
+
+        if isPlayer and targetServerId then
+            targetCuffStates[targetServerId] = not isTargetCuffed
+            TriggerServerEvent("coi_police:server:toggleCuff", targetServerId)
+        else
+            cuffedNPCs[closestPed] = not isTargetCuffed
+            cuffNPCPed(closestPed, cuffedNPCs[closestPed])
+        end
+    else
+        notify("No target nearby to handcuff!")
+    end
+end
+
+-- KEY MAPPING AND COMMAND DEFINITION FOR PHYSICAL KEY 'L'
+RegisterCommand("cuff", function()
+    tryCuffTarget()
+end, false)
+
+RegisterKeyMapping("cuff", "Handcuff or Uncuff Nearby Target", "keyboard", "L")
 
 -- TARGET PLAYER CUFF / UNCUFF EVENT
 RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
@@ -214,21 +292,12 @@ RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
     if isHandcuffed then
         notify("You have been handcuffed.")
 
-        -- Enable Handcuffs state
         SetEnableHandcuffs(playerPed, true)
+        Citizen.InvokeNative(0x1913AE2D2FB18414, playerPed, 128, true) -- SetPedConfigFlag 128
         SetCurrentPedWeapon(playerPed, `WEAPON_UNARMED`, true)
 
-        -- Load & Play Handcuff Loop Animation
-        local dict = "script_re@cuffs"
-        RequestAnimDict(dict)
-        local timeout = 0
-        while not HasAnimDictLoaded(dict) and timeout < 100 do
-            Wait(10)
-            timeout = timeout + 1
-        end
-        TaskPlayAnim(playerPed, dict, "cuffed_loop", 8.0, -8.0, -1, 31, 0, false, false, false)
+        local usedDict, usedName = playAnimWithFallback(playerPed, targetAnims, 8.0, -8.0, -1, 31)
 
-        -- Disable actions loop while cuffed
         CreateThread(function()
             while isHandcuffed do
                 Wait(0)
@@ -240,16 +309,18 @@ RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
                 DisableControlAction(0, 0x8702B207, true) -- JOURNAL
                 DisableControlAction(0, 0x41AC83D1, true) -- VEHICLE/MOUNT
                 DisableControlAction(0, 0xCEFD9220, true) -- WHISTLE
-                DisableControlAction(0, 0x8FFC7572, true) -- INTERACT
 
-                if not IsEntityPlayingAnim(ped, "script_re@cuffs", "cuffed_loop", 3) and not IsPedRagdoll(ped) then
-                    TaskPlayAnim(ped, "script_re@cuffs", "cuffed_loop", 8.0, -8.0, -1, 31, 0, false, false, false)
+                if usedDict and usedName then
+                    if not IsEntityPlayingAnim(ped, usedDict, usedName, 3) and not IsPedRagdoll(ped) then
+                        TaskPlayAnim(ped, usedDict, usedName, 8.0, -8.0, -1, 31, 0.0, false, false, false)
+                    end
                 end
             end
         end)
     else
         notify("You have been uncuffed.")
         SetEnableHandcuffs(playerPed, false)
+        Citizen.InvokeNative(0x1913AE2D2FB18414, playerPed, 128, false)
         ClearPedTasks(playerPed)
     end
 end)
@@ -339,7 +410,7 @@ CreateThread(function()
     local groupTitle = CreateVarString(10, 'LITERAL_STRING', "Sheriff Office")
     local playerGroupTitle = CreateVarString(10, 'LITERAL_STRING', "Law Action")
     local npcInteractionDist = (Config and Config.InteractionDistance) or 3.5
-    local cuffDist = (Config and Config.CuffDistance) or 4.0
+    local cuffDist = (Config and Config.CuffDistance) or 5.0
 
     while true do
         local sleep = 1000
@@ -397,15 +468,7 @@ CreateThread(function()
                     DrawText3D(targetCoords.x, targetCoords.y, targetCoords.z + 1.0, "[L] " .. cuffText)
 
                     if isCuffPromptPressed() then
-                        playOfficerCuffAnim()
-
-                        if isPlayer and targetServerId then
-                            targetCuffStates[targetServerId] = not isTargetCuffed
-                            TriggerServerEvent("coi_police:server:toggleCuff", targetServerId)
-                        else
-                            cuffedNPCs[closestPed] = not isTargetCuffed
-                            cuffNPCPed(closestPed, cuffedNPCs[closestPed])
-                        end
+                        tryCuffTarget()
                         Wait(1500)
                     end
                 end
@@ -421,3 +484,4 @@ AddEventHandler("onResourceStop", function(resourceName)
         cleanup()
     end
 end)
+
