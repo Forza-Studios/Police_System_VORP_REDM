@@ -53,3 +53,22 @@ RegisterNetEvent("coi_police:server:toggleCuff", function(targetServerId)
         end
     end
 end)
+
+-- Put Target in Jail Cell Event
+RegisterNetEvent("coi_police:server:putInJail", function(targetServerId, coords)
+    local _source = source
+    if not targetServerId or not coords then return end
+
+    local officerPed = GetPlayerPed(_source)
+    local targetPed = GetPlayerPed(targetServerId)
+
+    if DoesEntityExist(officerPed) and DoesEntityExist(targetPed) then
+        local officerCoords = GetEntityCoords(officerPed)
+        local targetCoords = GetEntityCoords(targetPed)
+        local dist = #(officerCoords - targetCoords)
+
+        if dist <= 5.0 then
+            TriggerClientEvent("coi_police:client:teleportToCell", targetServerId, coords)
+        end
+    end
+end)

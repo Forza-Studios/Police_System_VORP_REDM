@@ -72,10 +72,12 @@ document.getElementById('btn-show-id').addEventListener('click', function() {
 });
 
 document.getElementById('btn-put-jail').addEventListener('click', function() {
-    fetch(`https://${GetParentResourceName()}/actionComingSoon`, {
+    const menuWrapper = document.getElementById('target-menu-wrapper');
+    menuWrapper.classList.add('hidden');
+    fetch(`https://${GetParentResourceName()}/actionPutInJail`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ msg: 'Put in Jail feature coming soon!' })
+        body: JSON.stringify({})
     });
 });
 

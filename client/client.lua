@@ -289,9 +289,74 @@ RegisterNUICallback("actionHandcuff", function(data, cb)
     cb("ok")
 end)
 
+RegisterNUICallback("actionPutInJail", function(data, cb)
+    SetNuiFocus(false, false)
+    tryPutTargetInJail()
+    cb("ok")
+end)
+
 RegisterNUICallback("actionComingSoon", function(data, cb)
     notify(data.msg or "Feature coming soon!")
     cb("ok")
+end)
+
+-- FUNCTION TO PUT TARGET IN JAIL CELL
+function tryPutTargetInJail()
+    if not isPoliceOnDuty then
+        notify("You must be ON duty to put someone in jail!")
+        return
+    end
+
+    if not Config or not Config.JailCells or #Config.JailCells == 0 then
+        notify("No jail cells configured!")
+        return
+    end
+
+    local cuffDist = (Config and Config.CuffDistance) or 5.0
+    local closestPed, closestDist, isPlayer, targetServerId = GetClosestTargetPed(cuffDist)
+
+    if closestPed ~= -1 and DoesEntityExist(closestPed) then
+        -- Find closest cell location to officer
+        local myCoords = GetEntityCoords(PlayerPedId())
+        local selectedCell = Config.JailCells[1]
+        local minCellDist = 9999.0
+
+        for _, cell in ipairs(Config.JailCells) do
+            local c = cell.coords
+            local dist = #(myCoords - vector3(c.x, c.y, c.z))
+            if dist < minCellDist then
+                minCellDist = dist
+                selectedCell = cell
+            end
+        end
+
+        local c = selectedCell.coords
+        local vecCoords = { x = c.x, y = c.y, z = c.z, heading = c.w or c.h or 80.0 }
+
+        if isPlayer and targetServerId then
+            TriggerServerEvent("coi_police:server:putInJail", targetServerId, vecCoords)
+            notify("You put the player in " .. (selectedCell.name or "Cell") .. ".")
+        else
+            SetEntityCoords(closestPed, vecCoords.x, vecCoords.y, vecCoords.z, false, false, false, false)
+            if vecCoords.heading then
+                SetEntityHeading(closestPed, vecCoords.heading)
+            end
+            notify("You put the individual in " .. (selectedCell.name or "Cell") .. ".")
+        end
+    else
+        notify("No target nearby to put in jail!")
+    end
+end
+
+-- TARGET PLAYER TELEPORT TO CELL EVENT
+RegisterNetEvent("coi_police:client:teleportToCell", function(coords)
+    if not coords then return end
+    local ped = PlayerPedId()
+    SetEntityCoords(ped, coords.x, coords.y, coords.z, false, false, false, false)
+    if coords.heading then
+        SetEntityHeading(ped, coords.heading)
+    end
+    notify("You have been locked in a jail cell.")
 end)
 
 -- FUNCTION TO OPEN TARGET ACTION MENU ON KEY 'L'
