@@ -43,58 +43,46 @@ local function DrawText3D(x, y, z, text)
     end
 end
 
--- Detect closest Target (Players OR NPC Peds)
+-- Robust Target Ped Detection using GetGamePool('CPed')
 local function GetClosestTargetPed(maxDistance)
     local myPed = PlayerPedId()
     local myCoords = GetEntityCoords(myPed)
     local closestPed = -1
-    local closestDist = maxDistance or 2.5
+    local closestDist = maxDistance or 4.0
     local isPlayer = false
     local targetServerId = nil
 
-    -- 1. Check nearby players
-    local players = GetActivePlayers()
-    for _, player in ipairs(players) do
-        local targetPed = GetPlayerPed(player)
-        if targetPed ~= myPed and DoesEntityExist(targetPed) and not IsEntityDead(targetPed) then
-            local dist = #(myCoords - GetEntityCoords(targetPed))
-            if dist < closestDist then
-                closestDist = dist
-                closestPed = targetPed
-                isPlayer = true
-                targetServerId = GetPlayerServerId(player)
-            end
-        end
-    end
-
-    -- 2. If no player is closest, check nearby NPC Peds
-    if closestPed == -1 then
-        local pedHandle, ped = FindFirstPed()
-        local success = true
-        repeat
-            if DoesEntityExist(ped) and ped ~= myPed and not IsEntityDead(ped) and not IsPedAPlayer(ped) then
-                -- Make sure ped is not one of our duty station peds
-                local isDutyNPC = false
-                for _, sPed in ipairs(spawnedPeds) do
-                    if ped == sPed then
-                        isDutyNPC = true
-                        break
-                    end
+    local peds = GetGamePool('CPed')
+    for _, ped in ipairs(peds) do
+        if DoesEntityExist(ped) and ped ~= myPed and not IsEntityDead(ped) then
+            local isDutyNPC = false
+            for _, sPed in ipairs(spawnedPeds) do
+                if ped == sPed then
+                    isDutyNPC = true
+                    break
                 end
+            end
 
-                if not isDutyNPC then
-                    local dist = #(myCoords - GetEntityCoords(ped))
-                    if dist < closestDist then
-                        closestDist = dist
-                        closestPed = ped
+            if not isDutyNPC then
+                local dist = #(myCoords - GetEntityCoords(ped))
+                if dist < closestDist then
+                    closestDist = dist
+                    closestPed = ped
+                    if IsPedAPlayer(ped) then
+                        isPlayer = true
+                        for _, player in ipairs(GetActivePlayers()) do
+                            if GetPlayerPed(player) == ped then
+                                targetServerId = GetPlayerServerId(player)
+                                break
+                            end
+                        end
+                    else
                         isPlayer = false
                         targetServerId = nil
                     end
                 end
             end
-            success, ped = FindNextPed(pedHandle)
-        until not success
-        EndFindPed(pedHandle)
+        end
     end
 
     return closestPed, closestDist, isPlayer, targetServerId
@@ -167,10 +155,13 @@ local function isCuffPromptPressed()
     end
 
     local keyHash = (Config and Config.CuffKey) or 0x805B4AEA
-    local fallbackKeys = { keyHash, 0x805B4AEA, 0x26E9DAE4 }
+    local fallbackKeys = { keyHash, 0x805B4AEA, 0x26E9DAE4, 0x8FFC7572, 0xE30CD707 }
     for _, k in ipairs(fallbackKeys) do
         for group = 0, 2 do
-            if IsControlJustPressed(group, k) or IsDisabledControlJustPressed(group, k) then
+            if IsControlJustPressed(group, k)
+            or IsControlJustReleased(group, k)
+            or IsDisabledControlJustPressed(group, k)
+            or IsDisabledControlJustReleased(group, k) then
                 return true
             end
         end
@@ -348,7 +339,7 @@ CreateThread(function()
     local groupTitle = CreateVarString(10, 'LITERAL_STRING', "Sheriff Office")
     local playerGroupTitle = CreateVarString(10, 'LITERAL_STRING', "Law Action")
     local npcInteractionDist = (Config and Config.InteractionDistance) or 3.5
-    local cuffDist = (Config and Config.CuffDistance) or 2.5
+    local cuffDist = (Config and Config.CuffDistance) or 4.0
 
     while true do
         local sleep = 1000
