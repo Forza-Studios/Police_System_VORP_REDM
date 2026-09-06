@@ -98,3 +98,37 @@ RegisterNetEvent("coi_police:server:putInJail", function(targetServerId, coords)
         end
     end
 end)
+
+-- Sheriff Locker / Stash Event
+RegisterNetEvent("coi_police:server:openSheriffStash", function()
+    local _source = source
+    local stashConfig = Config and Config.SheriffStash
+    if not stashConfig then return end
+
+    local ped = GetPlayerPed(_source)
+    if DoesEntityExist(ped) then
+        local pedCoords = GetEntityCoords(ped)
+        local dist = #(pedCoords - vector3(stashConfig.coords.x, stashConfig.coords.y, stashConfig.coords.z))
+
+        if dist <= 3.5 then
+            if exports.vorp_inventory then
+                local isRegistered = exports.vorp_inventory:isCustomInventoryRegistered(stashConfig.id)
+                if not isRegistered then
+                    exports.vorp_inventory:registerInventory({
+                        id = stashConfig.id,
+                        name = stashConfig.name or "Sheriff Locker",
+                        limit = stashConfig.limit or 700,
+                        acceptWeapons = true,
+                        shared = true,
+                        ignoreItemStackLimit = true,
+                        whitelistItems = false,
+                        UsePermissions = false,
+                        UseBlackList = false,
+                        whitelistWeapons = false
+                    })
+                end
+                exports.vorp_inventory:openInventory(_source, stashConfig.id)
+            end
+        end
+    end
+end)

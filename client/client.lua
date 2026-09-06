@@ -898,6 +898,23 @@ CreateThread(function()
                     end
                 end
             end
+
+            -- 4. ON-DUTY SHERIFF STASH / LOCKER PROMPT
+            if isPoliceOnDuty and Config and Config.SheriffStash then
+                local stash = Config.SheriffStash
+                local stashCoords = vector3(stash.coords.x, stash.coords.y, stash.coords.z)
+                local dist = #(playerCoords - stashCoords)
+                if dist <= 2.5 then
+                    sleep = 0
+                    DrawText3D(stashCoords.x, stashCoords.y, stashCoords.z + 0.3, "[G] Sheriff Locker")
+
+                    local keyHash = stash.key or 0x760A9C6F
+                    if IsControlJustPressed(0, keyHash) or IsDisabledControlJustPressed(0, keyHash) then
+                        TriggerServerEvent("coi_police:server:openSheriffStash")
+                        Wait(1000)
+                    end
+                end
+            end
         end
 
         Wait(sleep)

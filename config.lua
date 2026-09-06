@@ -39,5 +39,15 @@ Config = {
             name = "Cell 2",
             coords = vector4(-274.5190, 811.2169, 118.3842, 235.0658)
         }
+    },
+
+    -- Sheriff Stash / Locker Settings
+    SheriffStash = {
+        id = "coi_police_sheriff_locker",
+        name = "Sheriff Locker",
+        limit = 700,
+        coords = vector3(-277.0092, 811.1743, 119.5367),
+        heading = 100.2950,
+        key = 0x760A9C6F -- Key 'G'
     }
 }
