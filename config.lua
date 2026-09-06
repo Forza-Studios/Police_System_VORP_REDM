@@ -16,18 +16,18 @@ Config = {
     -- Police Uniform Clothes / Shop Item Hashes
     Outfits = {
         Male = {
-            0x1FC12C9C, -- Police Star / Badge
+            0x1FC12C9C, -- Male Police Badge
             0x992B2E65, -- Sheriff Hat
-            0x64319808, -- Shirt
-            0x50720448, -- Pants
-            0x78E9A4B8  -- Boots
+            0x64319808, -- Male Shirt
+            0x50720448, -- Male Pants
+            0x78E9A4B8  -- Male Boots
         },
         Female = {
-            0x929677D,  -- Police Star / Badge
+            0x929677D,  -- Female Police Badge
             0x992B2E65, -- Sheriff Hat
-            0x64319808, -- Shirt
-            0x50720448, -- Pants
-            0x78E9A4B8  -- Boots
+            0xE36B0B68, -- Female Shirt / Coat
+            0x317F813B, -- Female Pants
+            0x5B596C5F  -- Female Boots
         }
     }
 }

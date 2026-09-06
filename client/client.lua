@@ -4,6 +4,9 @@ local isPoliceOnDuty = false
 local promptGroup = GetRandomIntInRange(0, 0xffffff)
 local promptHandle = nil
 
+local savedCivilianSkin = nil
+local savedCivilianComponents = nil
+
 local function notify(msg)
     TriggerEvent("vorp:TipRight", msg, 4000)
     TriggerEvent("vorp:Notify", "top-right", msg, 4000)
@@ -28,6 +31,39 @@ end
 local function UpdatePed(ped)
     Citizen.InvokeNative(0xAAB86462966168CE, ped, true)
     Citizen.InvokeNative(0xCC8CA3E88256E58F, ped, false, true, true, true, false)
+end
+
+local function saveCurrentOutfit()
+    pcall(function()
+        if GetResourceState("cas-charcreator") == "started" then
+            savedCivilianSkin = exports["cas-charcreator"]:GetPlayerSkin()
+            savedCivilianComponents = exports["cas-charcreator"]:GetAllPlayerComponents()
+        elseif GetResourceState("vorp_character") == "started" then
+            savedCivilianSkin = exports["vorp_character"]:GetPlayerSkin()
+            savedCivilianComponents = exports["vorp_character"]:GetAllPlayerComponents()
+        end
+    end)
+end
+
+local function restoreCivilianOutfit(playerPed)
+    local restored = false
+    if savedCivilianSkin or savedCivilianComponents then
+        local success = pcall(function()
+            if GetResourceState("cas-charcreator") == "started" then
+                exports["cas-charcreator"]:LoadPlayerComponents(playerPed, savedCivilianSkin, savedCivilianComponents, true)
+            elseif GetResourceState("vorp_character") == "started" then
+                exports["vorp_character"]:LoadPlayerComponents(playerPed, savedCivilianSkin, savedCivilianComponents, true)
+            end
+        end)
+        if success then restored = true end
+    end
+
+    if not restored then
+        TriggerEvent("vorp_character:reloadSkin")
+        TriggerServerEvent("vorp_character:LoadUserPed")
+        ExecuteCommand("rc")
+        ExecuteCommand("refreshskin")
+    end
 end
 
 local function resetAndApplyBaseBody(playerPed, isMale)
@@ -55,10 +91,13 @@ local function setPoliceOutfit(onDuty)
     if onDuty then
         local isMale = IsPedMale(playerPed)
 
-        -- 1. Reset components and apply base body
+        -- 1. Save player's civilian outfit from cas-charcreator / vorp_character
+        saveCurrentOutfit()
+
+        -- 2. Reset components and apply base body
         resetAndApplyBaseBody(playerPed, isMale)
 
-        -- 2. Apply police uniform clothing items
+        -- 3. Apply police uniform clothing items
         local outfits = Config and Config.Outfits
         local outfitList = isMale and (outfits and outfits.Male) or (outfits and outfits.Female)
         if outfitList then
@@ -84,11 +123,8 @@ local function setPoliceOutfit(onDuty)
             timeout = timeout + 1
         end
     else
-        -- Restore civilian skin & clothes on going off duty
-        TriggerEvent("vorp_character:reloadSkin")
-        TriggerServerEvent("vorp_character:LoadUserPed")
-        ExecuteCommand("rc")
-        ExecuteCommand("refreshskin")
+        -- Restore civilian outfit using saved skin and components
+        restoreCivilianOutfit(playerPed)
     end
 end
 
