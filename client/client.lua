@@ -1,5 +1,93 @@
 local spawnedPeds = {}
 local spawnedBlips = {}
+local isPoliceOnDuty = false
+local promptGroup = GetRandomIntInRange(0, 0xffffff)
+local promptHandle = nil
+
+local function notify(msg)
+    TriggerEvent("vorp:TipRight", msg, 4000)
+    TriggerEvent("vorp:Notify", "top-right", msg, 4000)
+end
+
+local function DrawText3D(x, y, z, text)
+    local onScreen, _x, _y = GetScreenCoordFromWorldCoord(x, y, z)
+    if onScreen then
+        SetTextScale(0.35, 0.35)
+        SetTextFontForCurrentCommand(1)
+        SetTextColor(255, 255, 255, 215)
+        SetTextCentre(1)
+        local str = CreateVarString(10, "LITERAL_STRING", text)
+        DisplayText(str, _x, _y)
+    end
+end
+
+local function setPoliceOutfit(onDuty)
+    local playerPed = PlayerPedId()
+    if onDuty then
+        local isMale = IsPedMale(playerPed)
+        local outfits = Config and Config.Outfits
+        local outfitList = isMale and (outfits and outfits.Male) or (outfits and outfits.Female)
+        if outfitList then
+            for _, item in ipairs(outfitList) do
+                local hash = type(item) == "string" and GetHashKey(item) or item
+                if hash and hash ~= 0 then
+                    local categoryHash = Citizen.InvokeNative(0x5FF9A878C3D115B8, hash, not isMale, true)
+                    if categoryHash and categoryHash ~= 0 then
+                        Citizen.InvokeNative(0x59BD177A1A48600A, playerPed, categoryHash)
+                        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, hash, true, true, true)
+                    else
+                        Citizen.InvokeNative(0xD3A7B003ED343FD9, playerPed, hash, true, true, true)
+                    end
+                end
+            end
+            Citizen.InvokeNative(0x704C908E9C405136, playerPed)
+            Citizen.InvokeNative(0xCC8CA3E88256E58F, playerPed, 0, 1, 1, 1, 0)
+        end
+    else
+        TriggerEvent("vorp_character:reloadSkin")
+        TriggerServerEvent("vorp_character:LoadUserPed")
+        ExecuteCommand("rc")
+    end
+end
+
+local function createDutyPrompt(actionText)
+    local keyHash = (Config and Config.Key) or 0x760A9C6F
+    local str = CreateVarString(10, 'LITERAL_STRING', actionText or "Go On Duty")
+    if not promptHandle then
+        promptHandle = PromptRegisterBegin()
+        PromptSetControlAction(promptHandle, keyHash)
+        PromptSetText(promptHandle, str)
+        PromptSetEnabled(promptHandle, true)
+        PromptSetVisible(promptHandle, true)
+        PromptSetStandardMode(promptHandle, true)
+        PromptSetGroup(promptHandle, promptGroup)
+        PromptRegisterEnd(promptHandle)
+    else
+        PromptSetText(promptHandle, str)
+    end
+end
+
+local function isPromptPressed()
+    if promptHandle then
+        if PromptHasStandardModeCompleted(promptHandle)
+        or PromptHasHoldModeCompleted(promptHandle)
+        or PromptIsJustPressed(promptHandle)
+        or PromptIsJustReleased(promptHandle) then
+            return true
+        end
+    end
+
+    local keyHash = (Config and Config.Key) or 0x760A9C6F
+    local fallbackKeys = { keyHash, 0x760A9C6F, 0x76037780, 0x44685E6B }
+    for _, k in ipairs(fallbackKeys) do
+        for group = 0, 2 do
+            if IsControlJustPressed(group, k) or IsDisabledControlJustPressed(group, k) then
+                return true
+            end
+        end
+    end
+    return false
+end
 
 local function spawnPoliceNPCs()
     if not POLICE_NPCS or #POLICE_NPCS == 0 then return end
@@ -65,10 +153,55 @@ local function cleanup()
         end
     end
     spawnedBlips = {}
+
+    if promptHandle then
+        PromptDelete(promptHandle)
+        promptHandle = nil
+    end
 end
 
 CreateThread(function()
     spawnPoliceNPCs()
+
+    local groupTitle = CreateVarString(10, 'LITERAL_STRING', "Sheriff Office")
+    local interactionDist = (Config and Config.InteractionDistance) or 3.5
+
+    while true do
+        local sleep = 1000
+        if POLICE_NPCS and #POLICE_NPCS > 0 then
+            local playerPed = PlayerPedId()
+            if not IsEntityDead(playerPed) then
+                local playerCoords = GetEntityCoords(playerPed)
+
+                for _, npcData in ipairs(POLICE_NPCS) do
+                    local dist = #(playerCoords - vector3(npcData.x, npcData.y, npcData.z))
+                    if dist <= interactionDist then
+                        sleep = 0
+
+                        local actionText = isPoliceOnDuty and "Go Off Duty" or "Go On Duty"
+                        createDutyPrompt(actionText)
+                        PromptSetActiveGroupThisFrame(promptGroup, groupTitle, 0, 0, 0, 0)
+
+                        -- 3D Text Floating above NPC for guaranteed interaction hint
+                        DrawText3D(npcData.x, npcData.y, npcData.z + 1.1, "[G] " .. actionText)
+
+                        if isPromptPressed() then
+                            isPoliceOnDuty = not isPoliceOnDuty
+                            if isPoliceOnDuty then
+                                notify("You are now ON duty!")
+                            else
+                                notify("You are now OFF duty!")
+                            end
+                            setPoliceOutfit(isPoliceOnDuty)
+                            Wait(800)
+                        end
+                        break
+                    end
+                end
+            end
+        end
+        Wait(sleep)
+    end
 end)
 
 AddEventHandler("onResourceStop", function(resourceName)
