@@ -374,6 +374,65 @@ RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
     end
 end)
 
+-- PERMANENT CELL DOOR LOCKING SYSTEM (Engineered from coi_hm)
+local function ToPrimitiveNumber(val)
+    if type(val) == "number" then return math.floor(val) end
+    if type(val) == "string" then return math.floor(tonumber(val) or 0) end
+    if type(val) == "boolean" then return val and 1 or 0 end
+    if type(val) == "userdata" then
+        local str = tostring(val)
+        local num = tonumber(str)
+        if num then return math.floor(num) end
+    end
+    return 0
+end
+
+local function RegisterDoorHash(hash)
+    if not hash or hash == 0 then return end
+    if IsDoorRegisteredWithSystem and IsDoorRegisteredWithSystem(hash) then return end
+    Citizen.InvokeNative(0xD99229FE93B46286, hash, 1, 1, 0, 0, 0, 0)
+end
+
+local function SetDoorLockState(hash, isLocked)
+    local doorHash = ToPrimitiveNumber(hash)
+    if not doorHash or doorHash == 0 then return end
+    RegisterDoorHash(doorHash)
+    if isLocked then
+        if DoorSystemSetOpenRatio then
+            DoorSystemSetOpenRatio(doorHash, 0.0, false, false)
+        else
+            Citizen.InvokeNative(0xB6E6FBA95C7324AC, doorHash, 0.0, true)
+        end
+        if DoorSystemSetDoorState then
+            DoorSystemSetDoorState(doorHash, 1, false, false)
+        else
+            Citizen.InvokeNative(0x6BAB9442830C7F53, doorHash, 1)
+        end
+    else
+        if DoorSystemSetDoorState then
+            DoorSystemSetDoorState(doorHash, 0, false, false)
+        else
+            Citizen.InvokeNative(0x6BAB9442830C7F53, doorHash, 0)
+        end
+    end
+end
+
+local function applyAllLockedDoors()
+    if Config and Config.LockedDoors then
+        for _, entry in ipairs(Config.LockedDoors) do
+            local dHash = type(entry) == "table" and (entry.doorHash or entry.hash) or entry
+            SetDoorLockState(dHash, true)
+        end
+    end
+end
+
+CreateThread(function()
+    while true do
+        applyAllLockedDoors()
+        Wait(1000)
+    end
+end)
+
 local function spawnPoliceNPCs()
     if not POLICE_NPCS or #POLICE_NPCS == 0 then return end
 

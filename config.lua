@@ -15,9 +15,15 @@ Config = {
 
     -- Handcuff Settings
     CuffKey = 0x805B4AEA, -- Key 'L'
-    CuffDistance = 4.0,
+    CuffDistance = 5.0,
 
     -- UI Duty Pill Settings
     EnableDutyPill = true,
-    DutyPillText = "Sheriff On Duty"
+    DutyPillText = "Sheriff On Duty",
+
+    -- Permanently Locked Doors (Add door hashes here)
+    LockedDoors = {
+        295355979, -- Valentine Cell 1
+        193903155  -- Valentine Cell 2
+    }
 }
