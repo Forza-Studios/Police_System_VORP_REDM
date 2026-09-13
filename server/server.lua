@@ -1,4 +1,12 @@
 local doorStates = {} -- [doorHashNum] = isLocked (boolean)
+local Core = exports.vorp_core:GetCore()
+
+local function isPolice(source)
+    local user = Core.getUser(source)
+    local character = user and user.getUsedCharacter
+    local allowedJobs = Config and Config.PoliceJobs
+    return character and allowedJobs and allowedJobs[character.job] == true
+end
 
 local function ToPrimitiveNumber(val)
     if type(val) == "number" then return math.floor(val) end
@@ -31,6 +39,7 @@ end)
 
 RegisterNetEvent("coi_police:server:toggleDoorLock", function(hash)
     local _source = source
+    if not isPolice(_source) then return end
     local doorHash = ToPrimitiveNumber(hash)
     if doorHash == 0 then return end
 
@@ -45,6 +54,7 @@ end)
 -- Handcuff Target Event Forwarding
 RegisterNetEvent("coi_police:server:toggleCuff", function(targetServerId)
     local _source = source
+    if not isPolice(_source) then return end
     if not targetServerId or targetServerId == -1 then return end
 
     local officerPed = GetPlayerPed(_source)
@@ -64,6 +74,7 @@ end)
 -- Carry / Escort Target Event Forwarding
 RegisterNetEvent("coi_police:server:toggleCarry", function(targetServerId)
     local _source = source
+    if not isPolice(_source) then return end
     if not targetServerId or targetServerId == -1 then return end
 
     local officerPed = GetPlayerPed(_source)
@@ -83,6 +94,7 @@ end)
 -- Put Target in Jail Cell Event
 RegisterNetEvent("coi_police:server:putInJail", function(targetServerId, coords)
     local _source = source
+    if not isPolice(_source) then return end
     if not targetServerId or not coords then return end
 
     local officerPed = GetPlayerPed(_source)
@@ -102,6 +114,7 @@ end)
 -- Sheriff Locker / Stash Event
 RegisterNetEvent("coi_police:server:openSheriffStash", function()
     local _source = source
+    if not isPolice(_source) then return end
     local stashConfig = Config and Config.SheriffStash
     if not stashConfig then return end
 

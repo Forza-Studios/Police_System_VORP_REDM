@@ -17,6 +17,16 @@ local cuffPromptHandle = nil
 local targetCuffStates = {} -- Cache for target player cuffed states
 local cuffedNPCs = {}        -- Cache for NPC cuffed states
 
+local function hasPoliceJob()
+    local character = LocalPlayer.state.Character
+    local job = character and (character.Job or character.job)
+    return Config and Config.PoliceJobs and Config.PoliceJobs[job] == true
+end
+
+local function isAuthorizedOnDuty()
+    return hasPoliceJob() and isPoliceOnDuty
+end
+
 local function notify(msg)
     TriggerEvent("vorp:TipRight", msg, 4000)
     TriggerEvent("vorp:Notify", "top-right", msg, 4000)
@@ -253,7 +263,7 @@ end
 
 -- CORE CUFF TRIGGER FUNCTION (Invoked by Menu Action)
 local function tryCuffTarget()
-    if not isPoliceOnDuty then
+    if not isAuthorizedOnDuty() then
         notify("You must be ON duty to handcuff!")
         return
     end
@@ -296,6 +306,12 @@ RegisterNUICallback("actionHandcuff", function(data, cb)
 end)
 
 local function tryCarryTarget()
+    -- The key mapping exists client-side for every player, so silently ignore it
+    -- unless this character is actually a police officer.
+    if not hasPoliceJob() then
+        return
+    end
+
     if not isPoliceOnDuty then
         notify("You must be ON duty to carry or escort suspects!")
         return
@@ -399,7 +415,7 @@ end)
 
 -- FUNCTION TO PUT TARGET IN JAIL CELL
 function tryPutTargetInJail()
-    if not isPoliceOnDuty then
+    if not isAuthorizedOnDuty() then
         notify("You must be ON duty to put someone in jail!")
         return
     end
@@ -472,7 +488,7 @@ end)
 
 -- FUNCTION TO OPEN TARGET ACTION MENU ON KEY 'L'
 local function tryOpenTargetMenu()
-    if not isPoliceOnDuty then
+    if not isAuthorizedOnDuty() then
         notify("You must be ON duty to perform police actions!")
         return
     end
@@ -648,7 +664,7 @@ CreateThread(function()
 end)
 
 local function tryToggleClosestDoor()
-    if not isPoliceOnDuty then
+    if not isAuthorizedOnDuty() then
         notify("You must be ON duty to lock or unlock cell doors!")
         return
     end
@@ -817,7 +833,12 @@ CreateThread(function()
             local playerCoords = GetEntityCoords(playerPed)
 
             -- 1. DUTY NPC INTERACTION
-            if POLICE_NPCS and #POLICE_NPCS > 0 then
+            if not hasPoliceJob() and isPoliceOnDuty then
+                isPoliceOnDuty = false
+                updateDutyUI(false)
+            end
+
+            if hasPoliceJob() and POLICE_NPCS and #POLICE_NPCS > 0 then
                 for _, npcData in ipairs(POLICE_NPCS) do
                     local dist = #(playerCoords - vector3(npcData.x, npcData.y, npcData.z))
                     if dist <= npcInteractionDist then
@@ -844,7 +865,7 @@ CreateThread(function()
             end
 
             -- 2. ON-DUTY HANDCUFF & CARRY INTERACTION (PLAYERS & NPC PEDS)
-            if isPoliceOnDuty then
+            if isAuthorizedOnDuty() then
                 if isCarrying then
                     sleep = 0
                     DrawText3D(playerCoords.x, playerCoords.y, playerCoords.z + 0.9, "[Hold R] Drop / Stop Carrying")
@@ -879,7 +900,7 @@ CreateThread(function()
             end
 
             -- 3. ON-DUTY CELL DOOR PROMPT
-            if isPoliceOnDuty then
+            if isAuthorizedOnDuty() then
                 local doorsList = Config and (Config.LockedDoors or Config.Doors)
                 if doorsList and #doorsList > 0 then
                     for _, entry in ipairs(doorsList) do
@@ -900,7 +921,7 @@ CreateThread(function()
             end
 
             -- 4. ON-DUTY SHERIFF STASH / LOCKER PROMPT
-            if isPoliceOnDuty and Config and Config.SheriffStash then
+            if isAuthorizedOnDuty() and Config and Config.SheriffStash then
                 local stash = Config.SheriffStash
                 local stashCoords = vector3(stash.coords.x, stash.coords.y, stash.coords.z)
                 local dist = #(playerCoords - stashCoords)

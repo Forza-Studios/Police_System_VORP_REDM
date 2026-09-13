@@ -10,6 +10,11 @@ POLICE_NPCS = {
 }
 
 Config = {
+    -- Only characters with one of these VORP jobs can use police functions.
+    PoliceJobs = {
+        Police = true
+    },
+
     InteractionDistance = 3.5,
     Key = 0x760A9C6F, -- Key 'G' (INPUT_CONTEXT)
 
