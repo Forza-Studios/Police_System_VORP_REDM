@@ -110,6 +110,74 @@
         </div>
     </div>
 
+    <!-- Public Alert Panel (opened via /alert) -->
+    <div id="alert-panel-wrapper" class="hidden">
+        <div class="alert-panel">
+            <div class="alert-header">
+                <div class="alert-header-left">
+                    <div class="alert-icon-ring">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                        </svg>
+                    </div>
+                    <div class="alert-title-group">
+                        <span class="alert-title">EMERGENCY SERVICES</span>
+                        <span class="alert-subtitle">Request assistance from available units</span>
+                    </div>
+                </div>
+                <button id="close-alert-btn" class="close-btn">&times;</button>
+            </div>
+
+            <div class="alert-services">
+                <!-- Call Police -->
+                <div class="service-card service-police disabled">
+                    <div class="service-icon-wrap police-glow">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6.4-4.8-6.4 4.8 2.4-7.2-6-4.8h7.6z"/>
+                        </svg>
+                    </div>
+                    <div class="service-info">
+                        <span class="service-name">Call Sheriff</span>
+                        <span class="service-desc">Request law enforcement to your location</span>
+                    </div>
+                    <span class="badge-tag coming-soon">COMING SOON</span>
+                </div>
+
+                <!-- Call Doctor -->
+                <div class="service-card service-doctor disabled">
+                    <div class="service-icon-wrap doctor-glow">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/>
+                        </svg>
+                    </div>
+                    <div class="service-info">
+                        <span class="service-name">Call Doctor</span>
+                        <span class="service-desc">Request medical attention immediately</span>
+                    </div>
+                    <span class="badge-tag coming-soon">COMING SOON</span>
+                </div>
+
+                <!-- Call Admin -->
+                <div class="service-card service-admin disabled">
+                    <div class="service-icon-wrap admin-glow">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                        </svg>
+                    </div>
+                    <div class="service-info">
+                        <span class="service-name">Call Admin</span>
+                        <span class="service-desc">Report an issue or request admin help</span>
+                    </div>
+                    <span class="badge-tag coming-soon">COMING SOON</span>
+                </div>
+            </div>
+
+            <div class="alert-footer">
+                <span>Press <kbd>ESC</kbd> to close</span>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>

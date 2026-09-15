@@ -413,6 +413,29 @@ RegisterNUICallback("actionComingSoon", function(data, cb)
     cb("ok")
 end)
 
+-- PUBLIC /alert COMMAND (Available to ALL players)
+local isAlertPanelOpen = false
+
+RegisterCommand("alert", function()
+    if isAlertPanelOpen then
+        -- Close if already open
+        SendNUIMessage({ action = "closeAlertPanel" })
+        SetNuiFocus(false, false)
+        isAlertPanelOpen = false
+    else
+        -- Open alert panel
+        SetNuiFocus(true, true)
+        SendNUIMessage({ action = "openAlertPanel" })
+        isAlertPanelOpen = true
+    end
+end, false)
+
+RegisterNUICallback("closeAlertPanel", function(data, cb)
+    SetNuiFocus(false, false)
+    isAlertPanelOpen = false
+    cb("ok")
+end)
+
 -- FUNCTION TO PUT TARGET IN JAIL CELL
 function tryPutTargetInJail()
     if not isAuthorizedOnDuty() then
@@ -812,6 +835,8 @@ local function cleanup()
 
     SetNuiFocus(false, false)
     SendNUIMessage({ action = "closeTargetMenu" })
+    SendNUIMessage({ action = "closeAlertPanel" })
+    isAlertPanelOpen = false
     updateDutyUI(false)
 end
 

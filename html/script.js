@@ -53,6 +53,14 @@ window.addEventListener('message', function(event) {
     } else if (data.action === 'closeTargetMenu') {
         menuWrapper.classList.add('hidden');
     }
+
+    // 3. Alert Panel UI
+    const alertWrapper = document.getElementById('alert-panel-wrapper');
+    if (data.action === 'openAlertPanel') {
+        alertWrapper.classList.remove('hidden');
+    } else if (data.action === 'closeAlertPanel') {
+        alertWrapper.classList.add('hidden');
+    }
 });
 
 function closeMenu() {
@@ -66,6 +74,18 @@ function closeMenu() {
 }
 
 document.getElementById('close-menu-btn').addEventListener('click', closeMenu);
+
+function closeAlertPanel() {
+    const alertWrapper = document.getElementById('alert-panel-wrapper');
+    alertWrapper.classList.add('hidden');
+    fetch(`https://${GetParentResourceName()}/closeAlertPanel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    });
+}
+
+document.getElementById('close-alert-btn').addEventListener('click', closeAlertPanel);
 
 document.getElementById('btn-handcuff').addEventListener('click', function() {
     const menuWrapper = document.getElementById('target-menu-wrapper');
@@ -118,6 +138,13 @@ document.addEventListener('keyup', function(event) {
         const menuWrapper = document.getElementById('target-menu-wrapper');
         if (!menuWrapper.classList.contains('hidden')) {
             closeMenu();
+        }
+    }
+
+    if (event.key === 'Escape') {
+        const alertWrapper = document.getElementById('alert-panel-wrapper');
+        if (!alertWrapper.classList.contains('hidden')) {
+            closeAlertPanel();
         }
     }
 });
