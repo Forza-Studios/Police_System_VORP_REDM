@@ -220,26 +220,13 @@ RegisterNetEvent("coi_police:server:respondCall", function(callId)
     local _source = source
     if not isPolice(_source) then return end
 
-    -- Get officer name via VORP Core
-    local officerName = "Sheriff"
-    local user = Core.getUser(_source)
-    if user then
-        local character = user.getUsedCharacter
-        if character then
-            local first = character.firstname or ""
-            local last = character.lastname or ""
-            local full = (first .. " " .. last):gsub("^%s+", ""):gsub("%s+$", "")
-            if full ~= "" then officerName = full end
-        end
-    end
-
     for _, call in ipairs(activeCalls) do
         if call.id == callId then
             call.status = "RESPONDED"
 
-            -- Notify the player who called that Sheriff is on the way
+            -- Notify the player who called that a Sheriff is on the way
             if call.callerSrc and GetPlayerName(call.callerSrc) then
-                TriggerClientEvent("coi_police:client:notifyCallerResponding", call.callerSrc, officerName)
+                TriggerClientEvent("coi_police:client:notifyCallerResponding", call.callerSrc)
             end
             break
         end
