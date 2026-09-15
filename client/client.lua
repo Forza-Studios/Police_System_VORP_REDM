@@ -491,6 +491,12 @@ RegisterNetEvent("coi_police:client:sheriffCallAlert", function(callerName, call
     notify(alertText)
 end)
 
+-- CLIENT EVENT: Triggered for the caller when Sheriff clicks Respond in dashboard
+RegisterNetEvent("coi_police:client:notifyCallerResponding", function(officerName)
+    local msg = ("Sheriff %s is on the way to your location!"):format(officerName or "Officer")
+    notify(msg)
+end)
+
 -- OPEN SHERIFF DASHBOARD FUNCTION & /sheriff COMMAND
 local function openSheriffDashboard()
     if not hasPoliceJob() then
@@ -535,6 +541,42 @@ RegisterCommand("sheriff", function()
     end
 end, false)
 
+local currentCallBlip = nil
+
+local function setCallWaypoint(x, y, z)
+    x = tonumber(x) + 0.0
+    y = tonumber(y) + 0.0
+    z = tonumber(z) or 0.0
+
+    -- Remove existing call blip if present
+    if currentCallBlip and DoesBlipExist(currentCallBlip) then
+        RemoveBlip(currentCallBlip)
+        currentCallBlip = nil
+    end
+
+    -- 1. Clear existing map waypoints
+    Citizen.InvokeNative(0xD8E4C1D6B85E8C96) -- MAP::CLEAR_WAYPOINT
+    Wait(50)
+
+    -- 2. Native MAP::_SET_WAYPOINT & SetNewWaypoint
+    SetNewWaypoint(x, y)
+    Citizen.InvokeNative(0xFA7C82D610E0A071, x, y) -- MAP::_SET_WAYPOINT
+
+    -- 3. Create a Distress Call Blip on the RedM map with active GPS route
+    local blipStyle = 1664425300
+    local blip = Citizen.InvokeNative(0x554D9D53F696D002, blipStyle, x, y, z)
+    if blip and blip ~= 0 then
+        SetBlipSprite(blip, -693644997, true) -- Sheriff Star / Distress Sprite
+        SetBlipScale(blip, 1.2)
+        local varString = CreateVarString(10, 'LITERAL_STRING', "Distress Call Location")
+        Citizen.InvokeNative(0x9CB1A1623062F402, blip, varString)
+
+        -- Enable GPS Route line to location on minimap & radar
+        Citizen.InvokeNative(0x662D364B299E8F6A, blip, true) -- SetBlipRoute
+        currentCallBlip = blip
+    end
+end
+
 -- NUI DASHBOARD CALLBACKS
 RegisterNUICallback("closeSheriffDashboard", function(data, cb)
     SetNuiFocus(false, false)
@@ -544,8 +586,12 @@ end)
 
 RegisterNUICallback("setCallWaypoint", function(data, cb)
     if data and data.x and data.y then
-        SetNewWaypoint(tonumber(data.x) + 0.0, tonumber(data.y) + 0.0)
-        notify("GPS Waypoint set to distress call location!")
+        local x = tonumber(data.x) or 0.0
+        local y = tonumber(data.y) or 0.0
+        local z = tonumber(data.z) or 0.0
+
+        setCallWaypoint(x, y, z)
+        notify("GPS Waypoint & Route set to distress call location!")
     else
         notify("Could not set waypoint: location coordinates missing.")
     end
@@ -955,6 +1001,11 @@ local function cleanup()
         end
     end
     spawnedBlips = {}
+
+    if currentCallBlip and DoesBlipExist(currentCallBlip) then
+        RemoveBlip(currentCallBlip)
+        currentCallBlip = nil
+    end
 
     if dutyPromptHandle then
         PromptDelete(dutyPromptHandle)

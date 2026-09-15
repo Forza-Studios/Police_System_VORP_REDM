@@ -164,6 +164,7 @@ function renderActiveCalls(calls) {
         const cy = call.coords ? call.coords.y.toFixed(1) : '0';
         const rawX = call.coords ? call.coords.x : 0;
         const rawY = call.coords ? call.coords.y : 0;
+        const rawZ = call.coords ? call.coords.z : 0;
 
         html += `
             <div class="call-card" data-id="${call.id}">
@@ -183,7 +184,7 @@ function renderActiveCalls(calls) {
                     </div>
                 </div>
                 <div class="call-actions">
-                    <button class="btn-waypoint" onclick="setCallWaypoint(${rawX}, ${rawY}, ${call.id})">
+                    <button class="btn-waypoint" onclick="setCallWaypoint(${rawX}, ${rawY}, ${rawZ}, ${call.id})">
                         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
                         Set Waypoint
                     </button>
@@ -227,11 +228,11 @@ if (closeDashBtn) {
     closeDashBtn.addEventListener('click', closeSheriffDashboard);
 }
 
-function setCallWaypoint(x, y, callId) {
+function setCallWaypoint(x, y, z, callId) {
     fetch(`https://${GetParentResourceName()}/setCallWaypoint`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ x: x, y: y, callId: callId })
+        body: JSON.stringify({ x: x, y: y, z: z, callId: callId })
     });
 }
 
