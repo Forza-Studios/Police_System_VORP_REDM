@@ -540,59 +540,65 @@ RegisterCommand("sheriff", function()
     end
 end, false)
 
-local currentCallBlip = nil
+local currentCallBlip       = nil
+local currentCallRadiusBlip = nil
 
-local function setCallWaypoint(x, y, z)
-    x = (tonumber(x) or 0.0) + 0.0
-    y = (tonumber(y) or 0.0) + 0.0
-    z = (tonumber(z) or 0.0) + 0.0
+-- ---------------------------------------------------------------------------
+-- setCallWaypoint  –  uses wagon_heist-verified RedM natives:
+--   • BlipAddForCoords            = main map icon
+--   • 0x45F13B7E0A15C880          = radius/zone circle blip (confirmed working)
+--   • BlipAddModifier + MP_COLOR_2= red colour on both blips
+--   • StartGpsMultiRoute          = live GPS path on minimap AND full map
+-- ---------------------------------------------------------------------------
 
-    -- Remove existing distress call blip if present
-    if currentCallBlip and DoesBlipExist and DoesBlipExist(currentCallBlip) then
+local function clearDistressBlips()
+    if currentCallBlip then
         RemoveBlip(currentCallBlip)
         currentCallBlip = nil
     end
-
-    -- 1. Clear existing map waypoints (Native SET_WAYPOINT_OFF 0xA7E4E2D361C2627F)
-    pcall(function()
-        if SetWaypointOff then SetWaypointOff() end
-        if ClearGpsMultiRoute then ClearGpsMultiRoute() end
-        Citizen.InvokeNative(0xA7E4E2D361C2627F)
-    end)
-    Wait(50)
-
-    -- 2. Set new map waypoint (Native SET_NEW_WAYPOINT 0xFE43368D2AA4F2FC)
-    pcall(function()
-        Citizen.InvokeNative(0xFE43368D2AA4F2FC, x, y)
-    end)
-
-    -- 3. Create a Distress Call Blip on the RedM map with active GPS route
-    local blipStyle = 1664425300
-    local blip = Citizen.InvokeNative(0x554D9D53F696D002, blipStyle, x, y, z)
-    if blip and blip ~= 0 then
-        local spriteHash = -693644997 -- Sheriff Star / Badge icon
-        if SetBlipSprite then
-            SetBlipSprite(blip, spriteHash, true)
-        else
-            Citizen.InvokeNative(0x74F74E36E0055E8C, blip, spriteHash, true)
-        end
-
-        if SetBlipScale then
-            SetBlipScale(blip, 1.2)
-        end
-
-        local varString = CreateVarString(10, 'LITERAL_STRING', "Distress Call Location")
-        Citizen.InvokeNative(0x9CB1A1623062F402, blip, varString)
-
-        -- Enable RedM GPS Route line to location on minimap
-        if SetBlipRoute then
-            SetBlipRoute(blip, true)
-        else
-            Citizen.InvokeNative(0x70F14156C9002D38, blip, true) -- MAP::_SET_BLIP_GPS_ROUTE
-        end
-
-        currentCallBlip = blip
+    if currentCallRadiusBlip then
+        RemoveBlip(currentCallRadiusBlip)
+        currentCallRadiusBlip = nil
     end
+    ClearGpsMultiRoute()
+end
+
+local function setCallWaypoint(x, y, z)
+    x = tonumber(x) or 0.0
+    y = tonumber(y) or 0.0
+    z = tonumber(z) or 0.0
+
+    -- Clean up any previous call markers
+    clearDistressBlips()
+
+    local playerCoords = GetEntityCoords(PlayerPedId())
+
+    -- 1. Red radius/zone circle blip (wagon_heist native – confirmed working in RedM)
+    --    0x45F13B7E0A15C880 = BlipAddForRadius-style, args: style, x, y, z, radius
+    local radiusBlip = Citizen.InvokeNative(0x45F13B7E0A15C880, -1282792512, x, y, z, 60.0)
+    if radiusBlip and radiusBlip ~= 0 then
+        BlipAddModifier(radiusBlip, joaat("BLIP_MODIFIER_MP_COLOR_2")) -- Red
+        currentCallRadiusBlip = radiusBlip
+    end
+
+    -- 2. Main distress-call icon blip (BlipAddForCoords – confirmed working)
+    local mainBlip = BlipAddForCoords(1664425300, x, y, z)
+    if mainBlip and mainBlip ~= 0 then
+        SetBlipSprite(mainBlip, -693644997, true)  -- Sheriff Star / Badge
+        SetBlipScale(mainBlip, 1.2)
+        SetBlipName(mainBlip, "Distress Call Location")
+        BlipAddModifier(mainBlip, joaat("BLIP_MODIFIER_MP_COLOR_2")) -- Red
+        currentCallBlip = mainBlip
+    end
+
+    -- 3. Realtime GPS route path on minimap AND full map
+    --    (StartGpsMultiRoute / AddPointToGpsMultiRoute / SetGpsMultiRouteRender
+    --     are all confirmed working in wagon_heist)
+    ClearGpsMultiRoute()
+    StartGpsMultiRoute(joaat("COLOR_RED"), true, true)
+    AddPointToGpsMultiRoute(playerCoords.x, playerCoords.y, playerCoords.z, false)
+    AddPointToGpsMultiRoute(x, y, z, false)
+    SetGpsMultiRouteRender(true)
 end
 
 -- NUI DASHBOARD CALLBACKS
