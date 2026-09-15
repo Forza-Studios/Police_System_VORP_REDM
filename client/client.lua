@@ -553,15 +553,18 @@ local function setCallWaypoint(x, y, z)
         currentCallBlip = nil
     end
 
-    -- 1. Clear existing map waypoints
+    -- 1. Clear existing map waypoints (Native SET_WAYPOINT_OFF 0xA7E4E2D361C2627F)
     pcall(function()
+        if SetWaypointOff then SetWaypointOff() end
         if ClearGpsMultiRoute then ClearGpsMultiRoute() end
-        Citizen.InvokeNative(0xD8E4C1D6B85E8C96) -- MAP::_CLEAR_WAYPOINT
+        Citizen.InvokeNative(0xA7E4E2D361C2627F)
     end)
     Wait(50)
 
-    -- 2. Native MAP::_SET_WAYPOINT (RedM Native 0xFA7C82D610E0A071)
-    Citizen.InvokeNative(0xFA7C82D610E0A071, x, y)
+    -- 2. Set new map waypoint (Native SET_NEW_WAYPOINT 0xFE43368D2AA4F2FC)
+    pcall(function()
+        Citizen.InvokeNative(0xFE43368D2AA4F2FC, x, y)
+    end)
 
     -- 3. Create a Distress Call Blip on the RedM map with active GPS route
     local blipStyle = 1664425300
