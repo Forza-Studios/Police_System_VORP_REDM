@@ -452,7 +452,9 @@ RegisterNUICallback("actionCallSheriff", function(data, cb)
     end
 
     lastCallSheriffTime = now
-    TriggerServerEvent("coi_police:server:callSheriff")
+    local myPed = PlayerPedId()
+    local myCoords = GetEntityCoords(myPed)
+    TriggerServerEvent("coi_police:server:callSheriff", { x = myCoords.x, y = myCoords.y, z = myCoords.z })
     notify("Your call has been sent to the Sheriff's office!")
     cb("ok")
 end)
@@ -493,6 +495,11 @@ end)
 local function openSheriffDashboard()
     if not hasPoliceJob() then
         notify("Only Law Enforcement officers may access the Sheriff Ledger.")
+        return
+    end
+
+    if not isPoliceOnDuty then
+        notify("You must be ON DUTY to access the Sheriff Dashboard!")
         return
     end
 

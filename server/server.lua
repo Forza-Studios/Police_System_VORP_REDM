@@ -150,8 +150,8 @@ end)
 local activeCalls = {}
 local callCounter = 0
 
--- Call Sheriff Alert (any player can call, stores active call with coords and notifies sheriffs)
-RegisterNetEvent("coi_police:server:callSheriff", function()
+-- Call Sheriff Alert (any player can call, stores active call with exact player coords and notifies sheriffs)
+RegisterNetEvent("coi_police:server:callSheriff", function(clientCoords)
     local _source = source
 
     -- Get the caller's character name via VORP Core
@@ -169,12 +169,20 @@ RegisterNetEvent("coi_police:server:callSheriff", function()
         end
     end
 
-    -- Get caller ped position
-    local ped = GetPlayerPed(_source)
+    -- Get caller ped exact position
     local coords = { x = 0.0, y = 0.0, z = 0.0 }
-    if DoesEntityExist(ped) then
-        local c = GetEntityCoords(ped)
-        coords = { x = c.x, y = c.y, z = c.z }
+    if clientCoords and type(clientCoords) == "table" and clientCoords.x then
+        coords = {
+            x = tonumber(clientCoords.x) or 0.0,
+            y = tonumber(clientCoords.y) or 0.0,
+            z = tonumber(clientCoords.z) or 0.0
+        }
+    else
+        local ped = GetPlayerPed(_source)
+        if DoesEntityExist(ped) then
+            local c = GetEntityCoords(ped)
+            coords = { x = c.x, y = c.y, z = c.z }
+        end
     end
 
     callCounter = callCounter + 1
@@ -203,6 +211,7 @@ end)
 -- Request active calls for dashboard sync
 RegisterNetEvent("coi_police:server:requestActiveCalls", function()
     local _source = source
+    if not isPolice(_source) then return end
     TriggerClientEvent("coi_police:client:syncActiveCalls", _source, activeCalls)
 end)
 
