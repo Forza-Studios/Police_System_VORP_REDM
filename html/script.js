@@ -233,7 +233,7 @@ function setCallWaypoint(x, y, z, callId) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ x: x, y: y, z: z, callId: callId })
-    });
+    }).catch(() => {});
 }
 
 function respondToCall(callId) {
@@ -241,7 +241,7 @@ function respondToCall(callId) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ callId: callId })
-    });
+    }).catch(() => {});
 }
 
 function resolveCall(callId) {
@@ -249,7 +249,7 @@ function resolveCall(callId) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ callId: callId })
-    });
+    }).catch(() => {});
 }
 
 // Tab Switching Navigation
