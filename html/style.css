@@ -33,48 +33,49 @@ body {
 .duty-pill {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     padding: 8px 18px;
-    background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50px;
-    box-shadow: 0 4px 20px rgba(229, 57, 53, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    color: #ffffff;
-    letter-spacing: 0.8px;
+    background: linear-gradient(180deg, #2D4A2D 0%, #163016 100%);
+    border: 2px solid #8A6A3A;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.85), inset 0 0 10px rgba(0, 0, 0, 0.6);
+    color: #F5E6C8;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 1.2px;
     text-transform: uppercase;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    text-shadow: 1px 1px 2px #000000;
 }
 
 .status-dot {
     width: 8px;
     height: 8px;
-    background-color: #ffffff;
+    background-color: #4CAF50;
     border-radius: 50%;
-    box-shadow: 0 0 8px #ffffff;
+    box-shadow: 0 0 10px #4CAF50;
     animation: pulse 1.8s infinite ease-in-out;
 }
 
 .star-icon {
-    width: 15px;
-    height: 15px;
-    color: #ffd700;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+    width: 16px;
+    height: 16px;
+    color: #C9A227;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
 }
 
 @keyframes pulse {
     0% {
         transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
     }
     70% {
         transform: scale(1.1);
-        box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
+        box-shadow: 0 0 0 8px rgba(76, 175, 80, 0);
     }
     100% {
         transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
     }
 }
 
