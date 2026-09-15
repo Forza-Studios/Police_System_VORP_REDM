@@ -436,6 +436,43 @@ RegisterNUICallback("closeAlertPanel", function(data, cb)
     cb("ok")
 end)
 
+-- NUI CALLBACK: Player clicked "Call Sheriff" in the alert panel
+local lastCallSheriffTime = 0
+
+RegisterNUICallback("actionCallSheriff", function(data, cb)
+    SetNuiFocus(false, false)
+    isAlertPanelOpen = false
+
+    -- Cooldown check (30 seconds between calls)
+    local now = GetGameTimer()
+    if (now - lastCallSheriffTime) < 30000 then
+        notify("You must wait before calling the Sheriff again!")
+        cb("ok")
+        return
+    end
+
+    lastCallSheriffTime = now
+    TriggerServerEvent("coi_police:server:callSheriff")
+    notify("Your call has been sent to the Sheriff's office!")
+    cb("ok")
+end)
+
+-- CLIENT EVENT: Received when someone calls the sheriff (sent to on-duty officers)
+RegisterNetEvent("coi_police:client:sheriffCallAlert", function(callerName)
+    if not isPoliceOnDuty then return end
+
+    -- Show the blue alert pill with caller name
+    local alertText = callerName .. " is calling a Sheriff"
+    SendNUIMessage({
+        action = "showCallAlert",
+        text = alertText,
+        duration = 10000
+    })
+
+    -- Also show a VORP notification toast
+    notify(alertText)
+end)
+
 -- FUNCTION TO PUT TARGET IN JAIL CELL
 function tryPutTargetInJail()
     if not isAuthorizedOnDuty() then
@@ -836,6 +873,7 @@ local function cleanup()
     SetNuiFocus(false, false)
     SendNUIMessage({ action = "closeTargetMenu" })
     SendNUIMessage({ action = "closeAlertPanel" })
+    SendNUIMessage({ action = "hideCallAlert" })
     isAlertPanelOpen = false
     updateDutyUI(false)
 end

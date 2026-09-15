@@ -145,3 +145,27 @@ RegisterNetEvent("coi_police:server:openSheriffStash", function()
         end
     end
 end)
+
+-- Call Sheriff Alert (any player can call, all clients receive it — client filters on-duty)
+RegisterNetEvent("coi_police:server:callSheriff", function()
+    local _source = source
+
+    -- Get the caller's character name via VORP Core
+    local callerName = "Unknown"
+    local user = Core.getUser(_source)
+    if user then
+        local character = user.getUsedCharacter
+        if character then
+            local first = character.firstname or ""
+            local last = character.lastname or ""
+            callerName = (first .. " " .. last):gsub("^%s+", ""):gsub("%s+$", "")
+            if callerName == "" then
+                callerName = GetPlayerName(_source) or "Unknown"
+            end
+        end
+    end
+
+    -- Broadcast to ALL clients (client-side checks if they are on-duty sheriff)
+    TriggerClientEvent("coi_police:client:sheriffCallAlert", -1, callerName)
+    print(("[coi_police] %s (ID: %d) is calling a Sheriff"):format(callerName, _source))
+end)

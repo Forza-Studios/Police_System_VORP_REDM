@@ -556,3 +556,136 @@ body {
     font-weight: 700;
     color: #90a4ae;
 }
+
+/* ========================================
+   INCOMING CALL ALERT PILL (Sheriff HUD)
+   ======================================== */
+
+#call-alert-pill-container {
+    position: absolute;
+    top: 75px;
+    right: 25px;
+    z-index: 9998;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#call-alert-pill-container.hidden {
+    opacity: 0;
+    transform: translateY(-15px) scale(0.92);
+    pointer-events: none;
+}
+
+.call-alert-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.9) 0%, rgba(21, 101, 192, 0.95) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50px;
+    box-shadow:
+        0 4px 20px rgba(33, 150, 243, 0.5),
+        0 0 40px rgba(33, 150, 243, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    animation: callAlertPulse 2s infinite ease-in-out;
+}
+
+.call-alert-icon-ring {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: callIconSpin 1.2s ease-in-out infinite alternate;
+}
+
+.call-alert-icon-ring svg {
+    width: 16px;
+    height: 16px;
+    color: #ffffff;
+}
+
+#call-alert-text {
+    white-space: nowrap;
+}
+
+@keyframes callAlertPulse {
+    0%, 100% {
+        box-shadow:
+            0 4px 20px rgba(33, 150, 243, 0.5),
+            0 0 40px rgba(33, 150, 243, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+    50% {
+        box-shadow:
+            0 4px 30px rgba(33, 150, 243, 0.7),
+            0 0 60px rgba(33, 150, 243, 0.25),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+}
+
+@keyframes callIconSpin {
+    0% { transform: rotate(-8deg) scale(1); }
+    100% { transform: rotate(8deg) scale(1.1); }
+}
+
+/* ========================================
+   ACTIVE SERVICE CARD (Clickable)
+   ======================================== */
+
+.service-card.active {
+    cursor: pointer;
+    opacity: 1;
+}
+
+.service-card.active:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(66, 165, 245, 0.4);
+    box-shadow: 0 4px 20px rgba(66, 165, 245, 0.15);
+    transform: translateY(-2px);
+}
+
+.service-card.active:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(66, 165, 245, 0.1);
+}
+
+.service-arrow {
+    width: 20px;
+    height: 20px;
+    color: #546e7a;
+    flex-shrink: 0;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.service-card.active:hover .service-arrow {
+    color: #42a5f5;
+    transform: translateX(3px);
+}
+
+/* Call Sent Feedback State */
+.service-card.call-sent {
+    cursor: default;
+    opacity: 0.7;
+    pointer-events: none;
+    border-color: rgba(76, 175, 80, 0.4);
+    background: rgba(76, 175, 80, 0.08);
+}
+
+.service-card.call-sent .service-name {
+    color: #81c784;
+}
+
+.service-card.call-sent .service-desc {
+    color: #66bb6a;
+}

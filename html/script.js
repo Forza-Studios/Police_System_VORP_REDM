@@ -57,9 +57,45 @@ window.addEventListener('message', function(event) {
     // 3. Alert Panel UI
     const alertWrapper = document.getElementById('alert-panel-wrapper');
     if (data.action === 'openAlertPanel') {
+        // Reset the Call Sheriff button state when opening
+        const sheriffBtn = document.getElementById('btn-call-sheriff');
+        if (sheriffBtn) {
+            sheriffBtn.classList.remove('call-sent');
+            sheriffBtn.classList.add('active');
+            const nameEl = sheriffBtn.querySelector('.service-name');
+            const descEl = sheriffBtn.querySelector('.service-desc');
+            if (nameEl) nameEl.textContent = 'Call Sheriff';
+            if (descEl) descEl.textContent = 'Request law enforcement to your location';
+        }
         alertWrapper.classList.remove('hidden');
     } else if (data.action === 'closeAlertPanel') {
         alertWrapper.classList.add('hidden');
+    }
+
+    // 4. Incoming Call Alert Pill (shown to on-duty sheriffs)
+    const callAlertContainer = document.getElementById('call-alert-pill-container');
+    const callAlertText = document.getElementById('call-alert-text');
+
+    if (data.action === 'showCallAlert') {
+        if (data.text) {
+            callAlertText.textContent = data.text;
+        }
+        callAlertContainer.classList.remove('hidden');
+
+        // Auto-hide after duration (default 10s)
+        const duration = data.duration || 10000;
+        if (window._callAlertTimeout) {
+            clearTimeout(window._callAlertTimeout);
+        }
+        window._callAlertTimeout = setTimeout(function() {
+            callAlertContainer.classList.add('hidden');
+        }, duration);
+    } else if (data.action === 'hideCallAlert') {
+        callAlertContainer.classList.add('hidden');
+        if (window._callAlertTimeout) {
+            clearTimeout(window._callAlertTimeout);
+            window._callAlertTimeout = null;
+        }
     }
 });
 
@@ -86,6 +122,34 @@ function closeAlertPanel() {
 }
 
 document.getElementById('close-alert-btn').addEventListener('click', closeAlertPanel);
+
+// Call Sheriff Button
+document.getElementById('btn-call-sheriff').addEventListener('click', function() {
+    const btn = this;
+
+    // Prevent double-clicks
+    if (btn.classList.contains('call-sent')) return;
+
+    // Send the NUI callback to client.lua
+    fetch(`https://${GetParentResourceName()}/actionCallSheriff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    });
+
+    // Visual feedback: show "call sent" state
+    btn.classList.remove('active');
+    btn.classList.add('call-sent');
+    const nameEl = btn.querySelector('.service-name');
+    const descEl = btn.querySelector('.service-desc');
+    if (nameEl) nameEl.textContent = 'Call Sent!';
+    if (descEl) descEl.textContent = 'Sheriff has been notified of your location';
+
+    // Close the panel after a short delay
+    setTimeout(function() {
+        closeAlertPanel();
+    }, 1500);
+});
 
 document.getElementById('btn-handcuff').addEventListener('click', function() {
     const menuWrapper = document.getElementById('target-menu-wrapper');
@@ -148,3 +212,4 @@ document.addEventListener('keyup', function(event) {
         }
     }
 });
+

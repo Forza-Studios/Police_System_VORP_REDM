@@ -12,7 +12,8 @@ POLICE_NPCS = {
 Config = {
     -- Only characters with one of these VORP jobs can use police functions.
     PoliceJobs = {
-        Police = true
+        Police = true,
+        Sheriff = true
     },
 
     InteractionDistance = 3.5,
