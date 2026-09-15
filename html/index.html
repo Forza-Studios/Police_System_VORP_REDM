@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Police Management</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Top-Right Duty Status Pill -->
@@ -192,6 +192,209 @@
         </div>
     </div>
 
+    <!-- Sheriff Department Dashboard Modal (Opened via /sheriff) -->
+    <div id="sheriff-dashboard-wrapper" class="hidden">
+        <div class="sheriff-dashboard-modal">
+            <!-- Brass Corner Accents -->
+            <div class="corner-brass top-left"></div>
+            <div class="corner-brass top-right"></div>
+            <div class="corner-brass bottom-left"></div>
+            <div class="corner-brass bottom-right"></div>
+
+            <!-- Header Section -->
+            <div class="dashboard-header">
+                <div class="dashboard-title-group">
+                    <div class="sheriff-badge-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6.4-4.8-6.4 4.8 2.4-7.2-6-4.8h7.6z"/>
+                        </svg>
+                    </div>
+                    <div class="title-text-wrap">
+                        <h1 class="dashboard-title">VALENTINE SHERIFF'S DEPARTMENT</h1>
+                        <p class="dashboard-subtitle">OFFICIAL DISPATCH LEDGER & LAW ENFORCEMENT RECORDS</p>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <div class="officer-badge-card">
+                        <span class="officer-label">ON-DUTY OFFICER</span>
+                        <span id="dash-officer-name" class="officer-name">Deputy Officer</span>
+                    </div>
+                    <button id="close-dashboard-btn" class="close-dash-btn" title="Close Ledger">&times;</button>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="dashboard-tabs">
+                <button class="dash-tab active" data-tab="tab-active-calls">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="tab-icon"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                    <span>Distress Calls</span>
+                    <span id="calls-badge-count" class="tab-badge">0</span>
+                </button>
+                <button class="dash-tab" data-tab="tab-wanted-list">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="tab-icon"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                    <span>Wanted Criminals</span>
+                </button>
+                <button class="dash-tab" data-tab="tab-roster">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="tab-icon"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                    <span>Deputy Roster</span>
+                </button>
+                <button class="dash-tab" data-tab="tab-jail-cells">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="tab-icon"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H9V7h2v10zm4 0h-2V7h2v10zm4 0h-2V7h2v10z"/></svg>
+                    <span>Jail & Lockup</span>
+                </button>
+                <button class="dash-tab" data-tab="tab-bulletins">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="tab-icon"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                    <span>Directives</span>
+                </button>
+            </div>
+
+            <!-- Dashboard Main Canvas (Parchment Paper Ledger) -->
+            <div class="dashboard-body">
+
+                <!-- TAB 1: ACTIVE DISTRESS CALLS -->
+                <div id="tab-active-calls" class="tab-content active">
+                    <div class="content-header-bar">
+                        <h2>ACTIVE DISTRESS TELEGRAMS & EMERGENCY CALLS</h2>
+                        <span class="sub-text">Calls placed by citizens requesting law enforcement presence</span>
+                    </div>
+
+                    <div id="active-calls-list" class="calls-container">
+                        <!-- Rendered dynamically in script.js -->
+                        <div class="empty-calls-state">
+                            <div class="empty-stamp">VALENTINE SHERIFF</div>
+                            <p>No active distress calls or telegrams logged in county records.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: WANTED CRIMINALS -->
+                <div id="tab-wanted-list" class="tab-content">
+                    <div class="content-header-bar">
+                        <h2>STATE WANTED LIST & BOUNTY REGISTRY</h2>
+                        <span class="sub-text">Apprehend suspects for state reward</span>
+                    </div>
+                    <div class="bounty-posters-grid">
+                        <div class="bounty-card">
+                            <div class="bounty-header">WANTED</div>
+                            <div class="bounty-reward">REWARD $50.00</div>
+                            <div class="bounty-name">Colm O'Driscoll</div>
+                            <div class="bounty-crime">Grand Larceny & Outlawry</div>
+                            <div class="bounty-status danger">DEAD OR ALIVE</div>
+                        </div>
+                        <div class="bounty-card">
+                            <div class="bounty-header">WANTED</div>
+                            <div class="bounty-reward">REWARD $35.00</div>
+                            <div class="bounty-name">Bill Williamson</div>
+                            <div class="bounty-crime">Stagecoach Robbery</div>
+                            <div class="bounty-status warning">ALIVE PREFERRED</div>
+                        </div>
+                        <div class="bounty-card">
+                            <div class="bounty-header">WANTED</div>
+                            <div class="bounty-reward">REWARD $25.00</div>
+                            <div class="bounty-name">Unknown Gunslinger</div>
+                            <div class="bounty-crime">Valentine Saloon Brawl & Shooting</div>
+                            <div class="bounty-status info">INVESTIGATION</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: DEPUTY ROSTER -->
+                <div id="tab-roster" class="tab-content">
+                    <div class="content-header-bar">
+                        <h2>ACTIVE LAW ENFORCEMENT ROSTER</h2>
+                        <span class="sub-text">Sworn deputies currently on duty</span>
+                    </div>
+                    <table class="roster-table">
+                        <thead>
+                            <tr>
+                                <th>OFFICER NAME</th>
+                                <th>RANK</th>
+                                <th>JURISDICTION</th>
+                                <th>STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roster-table-body">
+                            <tr>
+                                <td>Sheriff Curtis Malloy</td>
+                                <td>High Sheriff</td>
+                                <td>Valentine Office</td>
+                                <td><span class="badge-status on-duty">ON DUTY</span></td>
+                            </tr>
+                            <tr>
+                                <td>Deputy Thomas</td>
+                                <td>Chief Deputy</td>
+                                <td>Heartlands District</td>
+                                <td><span class="badge-status on-duty">ON DUTY</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- TAB 4: JAIL & LOCKUP -->
+                <div id="tab-jail-cells" class="tab-content">
+                    <div class="content-header-bar">
+                        <h2>VALENTINE JAILHOUSE LOCKUP STATUS</h2>
+                        <span class="sub-text">Cell doors & inmate tracking</span>
+                    </div>
+                    <div class="cells-grid">
+                        <div class="cell-card">
+                            <div class="cell-title">VALENTINE CELL #1</div>
+                            <div class="cell-status-wrap">
+                                <span class="label">DOOR STATUS:</span>
+                                <span id="cell-1-lock-status" class="status-value locked">LOCKED</span>
+                            </div>
+                            <p class="cell-desc">East side holding cell with heavy iron bars.</p>
+                        </div>
+                        <div class="cell-card">
+                            <div class="cell-title">VALENTINE CELL #2</div>
+                            <div class="cell-status-wrap">
+                                <span class="label">DOOR STATUS:</span>
+                                <span id="cell-2-lock-status" class="status-value locked">LOCKED</span>
+                            </div>
+                            <p class="cell-desc">West side holding cell with reinforced iron latch.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: DIRECTIVES -->
+                <div id="tab-bulletins" class="tab-content">
+                    <div class="content-header-bar">
+                        <h2>VALENTINE SHERIFF DEPARTMENT DIRECTIVES</h2>
+                        <span class="sub-text">Standing orders for law officers in Heartlands</span>
+                    </div>
+                    <div class="directives-list">
+                        <div class="directive-item">
+                            <h3>1. PROMPT DISTRESS RESPONSE</h3>
+                            <p>All deputies on duty must monitor telegram distress calls. Respond swiftly and mark call waypoints on your county map using the <code>[Set Waypoint]</code> ledger button.</p>
+                        </div>
+                        <div class="directive-item">
+                            <h3>2. HANDCUFFING & PRISONER ESCORT</h3>
+                            <p>Suspects must be safely restrained before transport. Use key mapping <code>[L]</code> for target actions or <code>[R]</code> to carry/escort.</p>
+                        </div>
+                        <div class="directive-item">
+                            <h3>3. JAIL CELL LOCKUP</h3>
+                            <p>Ensure cell doors are locked with key <code>[K]</code> after placing prisoners inside holding cells.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer Bar -->
+            <div class="dashboard-footer">
+                <div class="footer-seal">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="seal-star"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6.4-4.8-6.4 4.8 2.4-7.2-6-4.8h7.6z"/></svg>
+                    <span>OFFICIAL LEDGER • TOWN OF VALENTINE</span>
+                </div>
+                <div class="footer-hint">
+                    Press <kbd>ESC</kbd> or type <kbd>/sheriff</kbd> to close ledger
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
+

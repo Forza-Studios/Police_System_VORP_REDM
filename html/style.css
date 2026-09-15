@@ -689,3 +689,657 @@ body {
 .service-card.call-sent .service-desc {
     color: #66bb6a;
 }
+
+/* ==========================================================================
+   SHERIFF DEPARTMENT DASHBOARD (RDR2 WESTERN AESTHETIC)
+   ========================================================================== */
+
+#sheriff-dashboard-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 8, 6, 0.85);
+    z-index: 20000;
+    opacity: 1;
+    transition: opacity 0.2s ease-in-out;
+}
+
+#sheriff-dashboard-wrapper.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sheriff-dashboard-modal {
+    position: relative;
+    width: 960px;
+    height: 640px;
+    background: #1B1714;
+    border: 2px solid #8A6A3A;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), inset 0 0 40px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    color: #F5E6C8;
+    font-family: 'Crimson Text', Georgia, serif;
+    overflow: hidden;
+}
+
+/* Brass Corner Details */
+.corner-brass {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-color: #C9A227;
+    border-style: solid;
+    pointer-events: none;
+    z-index: 10;
+}
+.corner-brass.top-left { top: 6px; left: 6px; border-width: 2px 0 0 2px; }
+.corner-brass.top-right { top: 6px; right: 6px; border-width: 2px 2px 0 0; }
+.corner-brass.bottom-left { bottom: 6px; left: 6px; border-width: 0 0 2px 2px; }
+.corner-brass.bottom-right { bottom: 6px; right: 6px; border-width: 0 2px 2px 0; }
+
+/* Dashboard Header */
+.dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: linear-gradient(180deg, #2A211C 0%, #1B1714 100%);
+    border-bottom: 2px solid #8A6A3A;
+}
+
+.dashboard-title-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.sheriff-badge-icon {
+    width: 42px;
+    height: 42px;
+    color: #C9A227;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.title-text-wrap .dashboard-title {
+    font-family: 'Cinzel', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #C9A227;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-shadow: 1px 1px 2px #000;
+}
+
+.title-text-wrap .dashboard-subtitle {
+    font-family: 'Crimson Text', serif;
+    font-size: 13px;
+    color: #D6C3A5;
+    letter-spacing: 0.8px;
+    margin-top: 2px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.officer-badge-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    background: #14100D;
+    padding: 6px 14px;
+    border: 1px solid #8A6A3A;
+    border-radius: 6px;
+}
+
+.officer-badge-card .officer-label {
+    font-size: 10px;
+    font-family: 'Cinzel', serif;
+    color: #8A6A3A;
+    letter-spacing: 1px;
+}
+
+.officer-badge-card .officer-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #F5E6C8;
+}
+
+.close-dash-btn {
+    background: #2A211C;
+    border: 1px solid #8A6A3A;
+    color: #D6C3A5;
+    font-size: 20px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.close-dash-btn:hover {
+    background: #6B1E1E;
+    color: #F5E6C8;
+    border-color: #C9A227;
+}
+
+/* Dashboard Tabs Navigation Bar */
+.dashboard-tabs {
+    display: flex;
+    background: #14100D;
+    border-bottom: 1px solid #8A6A3A;
+    padding: 0 16px;
+    gap: 6px;
+}
+
+.dash-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    background: #1B1714;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    color: #D6C3A5;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-top: 6px;
+}
+
+.dash-tab .tab-icon {
+    width: 16px;
+    height: 16px;
+    color: #8A6A3A;
+}
+
+.dash-tab:hover {
+    background: #2A211C;
+    color: #F5E6C8;
+}
+
+.dash-tab.active {
+    background: #2A211C;
+    border-color: #8A6A3A #8A6A3A transparent #8A6A3A;
+    color: #C9A227;
+}
+
+.dash-tab.active .tab-icon {
+    color: #C9A227;
+}
+
+.tab-badge {
+    background: #6B1E1E;
+    color: #F5E6C8;
+    font-family: sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 10px;
+    border: 1px solid #C9A227;
+}
+
+/* Dashboard Body Canvas */
+.dashboard-body {
+    flex: 1;
+    background: #2A211C;
+    padding: 20px 24px;
+    overflow-y: auto;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.content-header-bar {
+    margin-bottom: 18px;
+    border-bottom: 1px solid rgba(138, 106, 58, 0.4);
+    padding-bottom: 8px;
+}
+
+.content-header-bar h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    color: #C9A227;
+    letter-spacing: 1px;
+}
+
+.content-header-bar .sub-text {
+    font-size: 13px;
+    color: #D6C3A5;
+    font-style: italic;
+}
+
+/* Tab 1: Distress Calls Cards */
+.calls-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.empty-calls-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 50px 20px;
+    border: 1px dashed #8A6A3A;
+    border-radius: 8px;
+    background: rgba(20, 16, 13, 0.5);
+    text-align: center;
+}
+
+.empty-stamp {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: rgba(201, 162, 39, 0.35);
+    letter-spacing: 4px;
+    border: 2px solid rgba(201, 162, 39, 0.35);
+    padding: 6px 18px;
+    border-radius: 4px;
+    transform: rotate(-4deg);
+    margin-bottom: 12px;
+}
+
+.empty-calls-state p {
+    font-size: 15px;
+    color: #D6C3A5;
+}
+
+.call-card {
+    background: #1B1714;
+    border: 1px solid #8A6A3A;
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    transition: border-color 0.15s ease;
+}
+
+.call-card:hover {
+    border-color: #C9A227;
+}
+
+.call-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.call-icon-wrap {
+    width: 40px;
+    height: 40px;
+    background: #14100D;
+    border: 1px solid #8A6A3A;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #C9A227;
+    flex-shrink: 0;
+}
+
+.call-icon-wrap svg {
+    width: 20px;
+    height: 20px;
+}
+
+.call-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.call-caller {
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #F5E6C8;
+}
+
+.call-details {
+    font-size: 13px;
+    color: #D6C3A5;
+}
+
+.call-meta {
+    font-size: 12px;
+    color: #8A6A3A;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.call-status-tag {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.call-status-tag.pending {
+    background: #6B1E1E;
+    color: #F5E6C8;
+    border: 1px solid #C9A227;
+}
+
+.call-status-tag.responded {
+    background: #8A6A3A;
+    color: #14100D;
+}
+
+.call-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-waypoint {
+    background: #8A6A3A;
+    color: #14100D;
+    border: 1px solid #C9A227;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+}
+
+.btn-waypoint svg {
+    width: 14px;
+    height: 14px;
+}
+
+.btn-waypoint:hover {
+    background: #C9A227;
+    color: #14100D;
+    box-shadow: 0 2px 8px rgba(201, 162, 39, 0.4);
+}
+
+.btn-respond {
+    background: #2A211C;
+    color: #C9A227;
+    border: 1px solid #8A6A3A;
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-respond:hover {
+    background: #8A6A3A;
+    color: #14100D;
+}
+
+.btn-resolve {
+    background: #2A211C;
+    color: #D6C3A5;
+    border: 1px solid #8A6A3A;
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-resolve:hover {
+    background: #6B1E1E;
+    color: #F5E6C8;
+    border-color: #6B1E1E;
+}
+
+/* Tab 2: Bounty Posters Grid */
+.bounty-posters-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.bounty-card {
+    background: #1B1714;
+    border: 2px solid #8A6A3A;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bounty-header {
+    font-family: 'Cinzel', serif;
+    font-size: 20px;
+    font-weight: 900;
+    color: #C9A227;
+    letter-spacing: 2px;
+    border-bottom: 1px solid #8A6A3A;
+    padding-bottom: 4px;
+}
+
+.bounty-reward {
+    font-family: 'IM Fell English', serif;
+    font-size: 18px;
+    color: #F5E6C8;
+    font-weight: bold;
+}
+
+.bounty-name {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #D6C3A5;
+}
+
+.bounty-crime {
+    font-size: 13px;
+    color: #D6C3A5;
+    font-style: italic;
+}
+
+.bounty-status {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+
+.bounty-status.danger { background: #6B1E1E; color: #F5E6C8; border: 1px solid #C9A227; }
+.bounty-status.warning { background: #8A6A3A; color: #14100D; font-weight: bold; }
+.bounty-status.info { background: #14100D; color: #D6C3A5; border: 1px solid #8A6A3A; }
+
+/* Tab 3: Roster Table */
+.roster-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.roster-table th {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    color: #C9A227;
+    text-align: left;
+    padding: 10px 14px;
+    background: #14100D;
+    border-bottom: 2px solid #8A6A3A;
+}
+
+.roster-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(138, 106, 58, 0.3);
+    color: #F5E6C8;
+}
+
+.badge-status.on-duty {
+    background: #8A6A3A;
+    color: #14100D;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+/* Tab 4: Cells Grid */
+.cells-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.cell-card {
+    background: #1B1714;
+    border: 1px solid #8A6A3A;
+    border-radius: 8px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cell-title {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #C9A227;
+}
+
+.cell-status-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.status-value.locked {
+    color: #F5E6C8;
+    font-weight: bold;
+    background: #6B1E1E;
+    padding: 2px 8px;
+    border: 1px solid #C9A227;
+    border-radius: 4px;
+}
+
+.status-value.unlocked {
+    color: #14100D;
+    font-weight: bold;
+    background: #8A6A3A;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.cell-desc {
+    font-size: 13px;
+    color: #D6C3A5;
+}
+
+/* Tab 5: Directives */
+.directives-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.directive-item {
+    background: #1B1714;
+    border: 1px solid #8A6A3A;
+    border-radius: 8px;
+    padding: 14px 18px;
+}
+
+.directive-item h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    color: #C9A227;
+    margin-bottom: 4px;
+}
+
+.directive-item p {
+    font-size: 13.5px;
+    color: #D6C3A5;
+    line-height: 1.4;
+}
+
+.directive-item code {
+    background: #14100D;
+    color: #C9A227;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #8A6A3A;
+    font-size: 12px;
+}
+
+/* Dashboard Footer */
+.dashboard-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: #14100D;
+    border-top: 1px solid #8A6A3A;
+    font-size: 12px;
+    color: #8A6A3A;
+}
+
+.footer-seal {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 1px;
+}
+
+.seal-star {
+    width: 14px;
+    height: 14px;
+    color: #C9A227;
+}
+
+.footer-hint kbd {
+    background: #2A211C;
+    border: 1px solid #8A6A3A;
+    color: #F5E6C8;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+

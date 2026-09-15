@@ -97,6 +97,174 @@ window.addEventListener('message', function(event) {
             window._callAlertTimeout = null;
         }
     }
+
+    // 5. Sheriff Dashboard UI (Opened via /sheriff)
+    const dashWrapper = document.getElementById('sheriff-dashboard-wrapper');
+    const officerNameEl = document.getElementById('dash-officer-name');
+
+    if (data.action === 'openSheriffDashboard') {
+        if (data.officerName && officerNameEl) {
+            officerNameEl.textContent = data.officerName;
+        }
+        if (data.activeCalls) {
+            renderActiveCalls(data.activeCalls);
+        }
+        if (data.doorStates) {
+            updateDoorStates(data.doorStates);
+        }
+        if (dashWrapper) {
+            dashWrapper.classList.remove('hidden');
+        }
+    } else if (data.action === 'closeSheriffDashboard') {
+        if (dashWrapper) {
+            dashWrapper.classList.add('hidden');
+        }
+    } else if (data.action === 'updateActiveCalls') {
+        if (data.activeCalls) {
+            renderActiveCalls(data.activeCalls);
+        }
+    }
+});
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderActiveCalls(calls) {
+    const container = document.getElementById('active-calls-list');
+    const countBadge = document.getElementById('calls-badge-count');
+
+    if (!container) return;
+
+    if (!calls || calls.length === 0) {
+        if (countBadge) countBadge.textContent = '0';
+        container.innerHTML = `
+            <div class="empty-calls-state">
+                <div class="empty-stamp">VALENTINE SHERIFF</div>
+                <p>No active distress calls or telegrams logged in county records.</p>
+            </div>
+        `;
+        return;
+    }
+
+    if (countBadge) countBadge.textContent = calls.length.toString();
+    let html = '';
+
+    calls.forEach(call => {
+        const isResponded = call.status === 'RESPONDED';
+        const statusText = isResponded ? 'OFFICER RESPONDING' : 'PENDING ASSISTANCE';
+        const statusClass = isResponded ? 'responded' : 'pending';
+        const cx = call.coords ? call.coords.x.toFixed(1) : '0';
+        const cy = call.coords ? call.coords.y.toFixed(1) : '0';
+        const rawX = call.coords ? call.coords.x : 0;
+        const rawY = call.coords ? call.coords.y : 0;
+
+        html += `
+            <div class="call-card" data-id="${call.id}">
+                <div class="call-left">
+                    <div class="call-icon-wrap">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                        </svg>
+                    </div>
+                    <div class="call-info">
+                        <div class="call-caller">${escapeHtml(call.callerName || 'Unknown Citizen')} (ID: ${call.callerSrc || '?'})</div>
+                        <div class="call-details">Distress Signal Reported • Coords: (${cx}, ${cy})</div>
+                        <div class="call-meta">
+                            <span>Logged: ${call.timeStr || 'Recent'}</span>
+                            <span class="call-status-tag ${statusClass}">${statusText}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="call-actions">
+                    <button class="btn-waypoint" onclick="setCallWaypoint(${rawX}, ${rawY}, ${call.id})">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        Set Waypoint
+                    </button>
+                    ${!isResponded ? `<button class="btn-respond" onclick="respondToCall(${call.id})">Respond</button>` : ''}
+                    <button class="btn-resolve" onclick="resolveCall(${call.id})">Clear</button>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function updateDoorStates(doorStates) {
+    if (!doorStates) return;
+    // Update Cell 1 & Cell 2 UI status if matching hashes are found
+    const cell1El = document.getElementById('cell-1-lock-status');
+    const cell2El = document.getElementById('cell-2-lock-status');
+    if (cell1El) {
+        cell1El.textContent = 'LOCKED';
+        cell1El.className = 'status-value locked';
+    }
+    if (cell2El) {
+        cell2El.textContent = 'LOCKED';
+        cell2El.className = 'status-value locked';
+    }
+}
+
+function closeSheriffDashboard() {
+    const dashWrapper = document.getElementById('sheriff-dashboard-wrapper');
+    if (dashWrapper) dashWrapper.classList.add('hidden');
+    fetch(`https://${GetParentResourceName()}/closeSheriffDashboard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    });
+}
+
+const closeDashBtn = document.getElementById('close-dashboard-btn');
+if (closeDashBtn) {
+    closeDashBtn.addEventListener('click', closeSheriffDashboard);
+}
+
+function setCallWaypoint(x, y, callId) {
+    fetch(`https://${GetParentResourceName()}/setCallWaypoint`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ x: x, y: y, callId: callId })
+    });
+}
+
+function respondToCall(callId) {
+    fetch(`https://${GetParentResourceName()}/respondCall`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callId: callId })
+    });
+}
+
+function resolveCall(callId) {
+    fetch(`https://${GetParentResourceName()}/resolveCall`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callId: callId })
+    });
+}
+
+// Tab Switching Navigation
+document.querySelectorAll('.dash-tab').forEach(tabBtn => {
+    tabBtn.addEventListener('click', function() {
+        const targetTabId = this.getAttribute('data-tab');
+
+        document.querySelectorAll('.dash-tab').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+        this.classList.add('active');
+        const targetContent = document.getElementById(targetTabId);
+        if (targetContent) {
+            targetContent.classList.add('active');
+        }
+    });
 });
 
 function closeMenu() {
@@ -200,16 +368,21 @@ document.getElementById('btn-put-jail').addEventListener('click', function() {
 document.addEventListener('keyup', function(event) {
     if (event.key === 'Escape' || event.key === 'l' || event.key === 'L') {
         const menuWrapper = document.getElementById('target-menu-wrapper');
-        if (!menuWrapper.classList.contains('hidden')) {
+        if (menuWrapper && !menuWrapper.classList.contains('hidden')) {
             closeMenu();
         }
     }
 
     if (event.key === 'Escape') {
         const alertWrapper = document.getElementById('alert-panel-wrapper');
-        if (!alertWrapper.classList.contains('hidden')) {
+        if (alertWrapper && !alertWrapper.classList.contains('hidden')) {
             closeAlertPanel();
+        }
+        const dashWrapper = document.getElementById('sheriff-dashboard-wrapper');
+        if (dashWrapper && !dashWrapper.classList.contains('hidden')) {
+            closeSheriffDashboard();
         }
     }
 });
+
 

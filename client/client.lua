@@ -457,12 +457,28 @@ RegisterNUICallback("actionCallSheriff", function(data, cb)
     cb("ok")
 end)
 
+-- ACTIVE CALLS & SHERIFF DASHBOARD MANAGEMENT
+local activeCallsList = {}
+local isDashboardOpen = false
+
+RegisterNetEvent("coi_police:client:syncActiveCalls", function(calls)
+    if calls then
+        activeCallsList = calls
+        if isDashboardOpen then
+            SendNUIMessage({
+                action = "updateActiveCalls",
+                activeCalls = activeCallsList
+            })
+        end
+    end
+end)
+
 -- CLIENT EVENT: Received when someone calls the sheriff (sent to on-duty officers)
-RegisterNetEvent("coi_police:client:sheriffCallAlert", function(callerName)
+RegisterNetEvent("coi_police:client:sheriffCallAlert", function(callerName, callData)
     if not isPoliceOnDuty then return end
 
     -- Show the blue alert pill with caller name
-    local alertText = callerName .. " is calling a Sheriff"
+    local alertText = (callerName or "Someone") .. " is calling a Sheriff"
     SendNUIMessage({
         action = "showCallAlert",
         text = alertText,
@@ -472,6 +488,79 @@ RegisterNetEvent("coi_police:client:sheriffCallAlert", function(callerName)
     -- Also show a VORP notification toast
     notify(alertText)
 end)
+
+-- OPEN SHERIFF DASHBOARD FUNCTION & /sheriff COMMAND
+local function openSheriffDashboard()
+    if not hasPoliceJob() then
+        notify("Only Law Enforcement officers may access the Sheriff Ledger.")
+        return
+    end
+
+    TriggerServerEvent("coi_police:server:requestActiveCalls")
+
+    local character = LocalPlayer.state.Character
+    local officerName = "Deputy Sheriff"
+    if character then
+        local first = character.firstname or ""
+        local last = character.lastname or ""
+        local full = (first .. " " .. last):gsub("^%s+", ""):gsub("%s+$", "")
+        if full ~= "" then officerName = full end
+    end
+
+    isDashboardOpen = true
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = "openSheriffDashboard",
+        officerName = officerName,
+        onDuty = isPoliceOnDuty,
+        activeCalls = activeCallsList,
+        doorStates = clientDoorStates
+    })
+end
+
+RegisterCommand("sheriff", function()
+    if isDashboardOpen then
+        SendNUIMessage({ action = "closeSheriffDashboard" })
+        SetNuiFocus(false, false)
+        isDashboardOpen = false
+    else
+        openSheriffDashboard()
+    end
+end, false)
+
+-- NUI DASHBOARD CALLBACKS
+RegisterNUICallback("closeSheriffDashboard", function(data, cb)
+    SetNuiFocus(false, false)
+    isDashboardOpen = false
+    cb("ok")
+end)
+
+RegisterNUICallback("setCallWaypoint", function(data, cb)
+    if data and data.x and data.y then
+        SetNewWaypoint(tonumber(data.x) + 0.0, tonumber(data.y) + 0.0)
+        notify("GPS Waypoint set to distress call location!")
+    else
+        notify("Could not set waypoint: location coordinates missing.")
+    end
+    cb("ok")
+end)
+
+RegisterNUICallback("respondCall", function(data, cb)
+    if data and data.callId then
+        TriggerServerEvent("coi_police:server:respondCall", data.callId)
+        notify("Marked responding to Call #" .. tostring(data.callId))
+    end
+    cb("ok")
+end)
+
+RegisterNUICallback("resolveCall", function(data, cb)
+    if data and data.callId then
+        TriggerServerEvent("coi_police:server:resolveCall", data.callId)
+        notify("Call #" .. tostring(data.callId) .. " resolved and cleared.")
+    end
+    cb("ok")
+end)
+
 
 -- FUNCTION TO PUT TARGET IN JAIL CELL
 function tryPutTargetInJail()
@@ -874,7 +963,9 @@ local function cleanup()
     SendNUIMessage({ action = "closeTargetMenu" })
     SendNUIMessage({ action = "closeAlertPanel" })
     SendNUIMessage({ action = "hideCallAlert" })
+    SendNUIMessage({ action = "closeSheriffDashboard" })
     isAlertPanelOpen = false
+    isDashboardOpen = false
     updateDutyUI(false)
 end
 

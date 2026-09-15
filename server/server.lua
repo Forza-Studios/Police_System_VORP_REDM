@@ -146,7 +146,11 @@ RegisterNetEvent("coi_police:server:openSheriffStash", function()
     end
 end)
 
--- Call Sheriff Alert (any player can call, all clients receive it — client filters on-duty)
+-- Active Distress Calls Storage
+local activeCalls = {}
+local callCounter = 0
+
+-- Call Sheriff Alert (any player can call, stores active call with coords and notifies sheriffs)
 RegisterNetEvent("coi_police:server:callSheriff", function()
     local _source = source
 
@@ -165,7 +169,66 @@ RegisterNetEvent("coi_police:server:callSheriff", function()
         end
     end
 
-    -- Broadcast to ALL clients (client-side checks if they are on-duty sheriff)
-    TriggerClientEvent("coi_police:client:sheriffCallAlert", -1, callerName)
-    print(("[coi_police] %s (ID: %d) is calling a Sheriff"):format(callerName, _source))
+    -- Get caller ped position
+    local ped = GetPlayerPed(_source)
+    local coords = { x = 0.0, y = 0.0, z = 0.0 }
+    if DoesEntityExist(ped) then
+        local c = GetEntityCoords(ped)
+        coords = { x = c.x, y = c.y, z = c.z }
+    end
+
+    callCounter = callCounter + 1
+    local callData = {
+        id = callCounter,
+        callerSrc = _source,
+        callerName = callerName,
+        coords = coords,
+        timeStr = os.date("%H:%M"),
+        status = "PENDING" -- PENDING, RESPONDED, RESOLVED
+    }
+
+    table.insert(activeCalls, 1, callData)
+    if #activeCalls > 25 then
+        table.remove(activeCalls, #activeCalls)
+    end
+
+    -- Sync active calls list to all clients
+    TriggerClientEvent("coi_police:client:syncActiveCalls", -1, activeCalls)
+
+    -- Broadcast notification alert to all on-duty sheriffs
+    TriggerClientEvent("coi_police:client:sheriffCallAlert", -1, callerName, callData)
+    print(("[coi_police] Distress Call #%d received from %s (ID: %d) at (%.1f, %.1f)"):format(callCounter, callerName, _source, coords.x, coords.y))
 end)
+
+-- Request active calls for dashboard sync
+RegisterNetEvent("coi_police:server:requestActiveCalls", function()
+    local _source = source
+    TriggerClientEvent("coi_police:client:syncActiveCalls", _source, activeCalls)
+end)
+
+-- Respond to Call
+RegisterNetEvent("coi_police:server:respondCall", function(callId)
+    local _source = source
+    if not isPolice(_source) then return end
+    for _, call in ipairs(activeCalls) do
+        if call.id == callId then
+            call.status = "RESPONDED"
+            break
+        end
+    end
+    TriggerClientEvent("coi_police:client:syncActiveCalls", -1, activeCalls)
+end)
+
+-- Resolve/Clear Call
+RegisterNetEvent("coi_police:server:resolveCall", function(callId)
+    local _source = source
+    if not isPolice(_source) then return end
+    for i, call in ipairs(activeCalls) do
+        if call.id == callId then
+            table.remove(activeCalls, i)
+            break
+        end
+    end
+    TriggerClientEvent("coi_police:client:syncActiveCalls", -1, activeCalls)
+end)
+
