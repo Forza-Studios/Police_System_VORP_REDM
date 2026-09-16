@@ -173,7 +173,7 @@ window.addEventListener('message', function(event) {
     const reinforcementWrapper = document.getElementById('reinforcement-menu-wrapper');
     if (data.action === 'openReinforcementMenu') {
         if (data.vehicles) {
-            renderReinforcementVehicles(data.vehicles);
+            renderReinforcementVehicles(data.vehicles, data.hasActiveVehicle, data.activeVehicleLabel);
         }
         if (reinforcementWrapper) {
             reinforcementWrapper.classList.remove('hidden');
@@ -623,7 +623,7 @@ if (closeReinforcementBtn) {
     closeReinforcementBtn.addEventListener('click', closeReinforcementMenu);
 }
 
-function renderReinforcementVehicles(vehicles) {
+function renderReinforcementVehicles(vehicles, hasActiveVehicle, activeVehicleLabel) {
     const grid = document.getElementById('reinforcement-vehicles-grid');
     if (!grid) return;
 
@@ -637,6 +637,31 @@ function renderReinforcementVehicles(vehicles) {
     }
 
     let html = '';
+
+    // Active vehicle return banner
+    if (hasActiveVehicle) {
+        const activeName = escapeHtml(activeVehicleLabel || 'Unknown Vehicle');
+        html += `
+            <div class="reinforcement-active-banner">
+                <div class="active-banner-left">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="active-banner-icon">
+                        <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                    </svg>
+                    <div class="active-banner-info">
+                        <span class="active-banner-label">DEPLOYED VEHICLE</span>
+                        <span class="active-banner-name">${activeName}</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-return-vehicle" onclick="returnReinforcement()">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 7v4H5.83l3.58-3.59L8 6l-6 6 6 6 1.41-1.41L5.83 13H21V7z"/>
+                    </svg>
+                    Return to Depot
+                </button>
+            </div>
+        `;
+    }
+
     vehicles.forEach(vehicle => {
         const label = escapeHtml(vehicle.label || 'Unknown Vehicle');
         const model = escapeHtml(vehicle.model || '');
@@ -680,6 +705,18 @@ function requestReinforcement(model, label) {
     }).catch(() => {});
 
     // Close the menu after requesting
+    const wrapper = document.getElementById('reinforcement-menu-wrapper');
+    if (wrapper) wrapper.classList.add('hidden');
+}
+
+function returnReinforcement() {
+    fetch(`https://${GetParentResourceName()}/returnReinforcement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    }).catch(() => {});
+
+    // Close the menu after returning
     const wrapper = document.getElementById('reinforcement-menu-wrapper');
     if (wrapper) wrapper.classList.add('hidden');
 }

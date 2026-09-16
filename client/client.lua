@@ -484,17 +484,50 @@ local function openReinforcementMenu()
         })
     end
 
+    -- Check if a reinforcement vehicle is currently active
+    local hasActiveVehicle = lastSpawnedReinforcement ~= nil and DoesEntityExist(lastSpawnedReinforcement)
+    local activeVehicleLabel = ""
+    if hasActiveVehicle then
+        -- Try to find the label from config
+        local activeHash = GetEntityModel(lastSpawnedReinforcement)
+        for _, v in ipairs(Config.ReinforcementVehicles) do
+            if GetHashKey(v.model) == activeHash then
+                activeVehicleLabel = v.label
+                break
+            end
+        end
+    end
+
     isReinforcementMenuOpen = true
     SetNuiFocus(true, true)
     SendNUIMessage({
         action = "openReinforcementMenu",
-        vehicles = vehicleData
+        vehicles = vehicleData,
+        hasActiveVehicle = hasActiveVehicle,
+        activeVehicleLabel = activeVehicleLabel
     })
 end
 
 RegisterNUICallback("closeReinforcementMenu", function(data, cb)
     SetNuiFocus(false, false)
     isReinforcementMenuOpen = false
+    cb("ok")
+end)
+
+RegisterNUICallback("returnReinforcement", function(data, cb)
+    SetNuiFocus(false, false)
+    isReinforcementMenuOpen = false
+
+    if lastSpawnedReinforcement and DoesEntityExist(lastSpawnedReinforcement) then
+        DeleteVehicle(lastSpawnedReinforcement)
+        DeleteEntity(lastSpawnedReinforcement)
+        lastSpawnedReinforcement = nil
+        notify("Reinforcement vehicle returned to depot.")
+    else
+        lastSpawnedReinforcement = nil
+        notify("No active reinforcement vehicle to return.")
+    end
+
     cb("ok")
 end)
 

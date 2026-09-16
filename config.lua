@@ -70,7 +70,7 @@ Config = {
     },
 
     -- Reinforcement Vehicle Requisition (Near Sadie Adler NPC)
-    ReinforcementKey = 0x6319DB71, -- Key 'Y'
+    ReinforcementKey = 0x6319DB71, -- Key 'Up arrow key'
     ReinforcementSpawn = vector4(-263.5977, 808.7073, 118.7609, 189.0707),
 
     ReinforcementVehicles = {
