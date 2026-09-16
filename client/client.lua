@@ -3,6 +3,7 @@ local spawnedBlips = {}
 local spawnedDutyPeds = {}
 local spawnedDutyBlips = {}
 local updateDutyNPCs = nil
+local clearDistressBlips = nil
 local isPoliceOnDuty = false
 local isHandcuffed = false
 
@@ -38,6 +39,9 @@ end
 local function updateDutyUI(onDuty)
     if updateDutyNPCs then
         updateDutyNPCs(onDuty)
+    end
+    if not onDuty and clearDistressBlips then
+        clearDistressBlips()
     end
 
     if Config and Config.EnableDutyPill then
@@ -654,6 +658,9 @@ end, false)
 
 local currentCallBlip       = nil
 local currentCallRadiusBlip = nil
+local activeWaypointCoords  = nil
+local activeWaypointCallId  = nil
+local isTrackingArrival     = false
 
 -- ---------------------------------------------------------------------------
 -- setCallWaypoint  –  uses wagon_heist-verified RedM natives:
@@ -663,25 +670,69 @@ local currentCallRadiusBlip = nil
 --   • StartGpsMultiRoute          = live GPS path on minimap AND full map
 -- ---------------------------------------------------------------------------
 
-local function clearDistressBlips()
+clearDistressBlips = function()
+    activeWaypointCoords = nil
+    activeWaypointCallId = nil
+
     if currentCallBlip then
-        RemoveBlip(currentCallBlip)
+        if DoesBlipExist(currentCallBlip) then
+            RemoveBlip(currentCallBlip)
+        end
         currentCallBlip = nil
     end
+
     if currentCallRadiusBlip then
-        RemoveBlip(currentCallRadiusBlip)
+        if DoesBlipExist(currentCallRadiusBlip) then
+            RemoveBlip(currentCallRadiusBlip)
+        end
         currentCallRadiusBlip = nil
     end
+
     ClearGpsMultiRoute()
 end
 
-local function setCallWaypoint(x, y, z)
+local function startArrivalTracking()
+    if isTrackingArrival then return end
+    isTrackingArrival = true
+
+    CreateThread(function()
+        while activeWaypointCoords ~= nil do
+            Wait(1000)
+
+            if not isPoliceOnDuty then
+                clearDistressBlips()
+                break
+            end
+
+            if activeWaypointCoords then
+                local playerPed = PlayerPedId()
+                if DoesEntityExist(playerPed) and not IsEntityDead(playerPed) then
+                    local pCoords = GetEntityCoords(playerPed)
+                    local dist = #(pCoords - activeWaypointCoords)
+
+                    -- When sheriff arrives within 25.0 meters of the alerted player location
+                    if dist <= 25.0 then
+                        clearDistressBlips()
+                        notify("Arrived near the caller location. Distress route and radius cleared.")
+                        break
+                    end
+                end
+            end
+        end
+        isTrackingArrival = false
+    end)
+end
+
+local function setCallWaypoint(x, y, z, callId)
     x = tonumber(x) or 0.0
     y = tonumber(y) or 0.0
     z = tonumber(z) or 0.0
 
     -- Clean up any previous call markers
     clearDistressBlips()
+
+    activeWaypointCoords = vector3(x, y, z)
+    activeWaypointCallId = callId
 
     local playerCoords = GetEntityCoords(PlayerPedId())
 
@@ -704,13 +755,14 @@ local function setCallWaypoint(x, y, z)
     end
 
     -- 3. Realtime GPS route path on minimap AND full map
-    --    (StartGpsMultiRoute / AddPointToGpsMultiRoute / SetGpsMultiRouteRender
-    --     are all confirmed working in wagon_heist)
     ClearGpsMultiRoute()
     StartGpsMultiRoute(joaat("COLOR_RED"), true, true)
     AddPointToGpsMultiRoute(playerCoords.x, playerCoords.y, playerCoords.z, false)
     AddPointToGpsMultiRoute(x, y, z, false)
     SetGpsMultiRouteRender(true)
+
+    -- 4. Start active distance check thread to auto-clean on arrival
+    startArrivalTracking()
 end
 
 -- NUI DASHBOARD CALLBACKS
@@ -725,13 +777,14 @@ RegisterNUICallback("setCallWaypoint", function(data, cb)
         local x = tonumber(data.x) or 0.0
         local y = tonumber(data.y) or 0.0
         local z = tonumber(data.z) or 0.0
+        local callId = data.callId
 
         -- Close dashboard UI so minimap & GPS route are immediately visible
         SendNUIMessage({ action = "closeSheriffDashboard" })
         SetNuiFocus(false, false)
         isDashboardOpen = false
 
-        setCallWaypoint(x, y, z)
+        setCallWaypoint(x, y, z, callId)
         notify("GPS Waypoint & Route set to distress call location!")
     else
         notify("Could not set waypoint: location coordinates missing.")
@@ -749,6 +802,9 @@ end)
 
 RegisterNUICallback("resolveCall", function(data, cb)
     if data and data.callId then
+        if activeWaypointCallId == data.callId then
+            clearDistressBlips()
+        end
         TriggerServerEvent("coi_police:server:resolveCall", data.callId)
         notify("Call #" .. tostring(data.callId) .. " resolved and cleared.")
     end
@@ -1185,6 +1241,7 @@ end
 
 local function cleanup()
     removeDutyOnlyNPCs()
+    clearDistressBlips()
 
     for _, ped in ipairs(spawnedPeds) do
         if DoesEntityExist(ped) then
@@ -1199,11 +1256,6 @@ local function cleanup()
         end
     end
     spawnedBlips = {}
-
-    if currentCallBlip and DoesBlipExist(currentCallBlip) then
-        RemoveBlip(currentCallBlip)
-        currentCallBlip = nil
-    end
 
     if dutyPromptHandle then
         PromptDelete(dutyPromptHandle)
