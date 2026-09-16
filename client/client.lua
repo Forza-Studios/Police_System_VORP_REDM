@@ -413,6 +413,111 @@ RegisterNUICallback("actionComingSoon", function(data, cb)
     cb("ok")
 end)
 
+-- SUSPECT SATCHEL SEARCH & CONFISCATE NUI CALLBACKS
+RegisterNUICallback("actionSearchInventory", function(data, cb)
+    if not isAuthorizedOnDuty() then
+        SetNuiFocus(false, false)
+        notify("You must be ON duty to search satchels!")
+        cb("ok")
+        return
+    end
+
+    local cuffDist = (Config and Config.CuffDistance) or 5.0
+    local closestPed, closestDist, isPlayer, targetServerId = GetClosestTargetPed(cuffDist)
+
+    if closestPed ~= -1 and DoesEntityExist(closestPed) then
+        local isTargetCuffed = false
+        if isPlayer and targetServerId then
+            isTargetCuffed = targetCuffStates[targetServerId] or false
+        else
+            isTargetCuffed = cuffedNPCs[closestPed] or false
+        end
+
+        if not isTargetCuffed then
+            SetNuiFocus(false, false)
+            notify("The individual must be restrained or handcuffed to search their satchel!")
+            cb("ok")
+            return
+        end
+
+        -- Search animation
+        TaskStartScenarioInPlace(PlayerPedId(), GetHashKey("WORLD_HUMAN_CROUCH_INSPECT"), 2500, true, false, false, false)
+
+        if isPlayer and targetServerId then
+            TriggerServerEvent("coi_police:server:searchInventory", targetServerId)
+        else
+            -- NPC satchel fallback with period items
+            SetNuiFocus(true, true)
+            local npcItems = {
+                { name = "pocket_watch", label = "Silver Pocket Watch", count = 1 },
+                { name = "whiskey", label = "Kentucky Bourbon", count = 1 },
+                { name = "consumable_meat_cooked", label = "Salted Meat", count = 2 },
+                { name = "lockpick", label = "Battered Lockpick", count = 1 }
+            }
+            SendNUIMessage({
+                action = "openSuspectInventory",
+                targetServerId = -1,
+                targetName = "Civilian Traveler",
+                money = 1.75,
+                gold = 0.0,
+                items = npcItems
+            })
+        end
+    else
+        SetNuiFocus(false, false)
+        notify("No target nearby to search!")
+    end
+    cb("ok")
+end)
+
+RegisterNUICallback("closeInventory", function(data, cb)
+    SetNuiFocus(false, false)
+    cb("ok")
+end)
+
+RegisterNUICallback("actionConfiscateItem", function(data, cb)
+    if not isAuthorizedOnDuty() then
+        notify("You must be ON duty to confiscate evidence!")
+        cb("ok")
+        return
+    end
+
+    if not data or not data.itemName then
+        cb("ok")
+        return
+    end
+
+    local targetServerId = data.targetServerId
+    if targetServerId and targetServerId ~= -1 then
+        TriggerServerEvent("coi_police:server:confiscateItem", targetServerId, data.itemName, data.itemLabel or data.itemName, data.count or 1)
+    else
+        notify(("Confiscated %s x%d into county evidence."):format(data.itemLabel or data.itemName, data.count or 1))
+    end
+    cb("ok")
+end)
+
+-- SATCHEL INVENTORY CLIENT EVENTS
+RegisterNetEvent("coi_police:client:receiveSuspectInventory", function(targetServerId, targetName, money, gold, items)
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = "openSuspectInventory",
+        targetServerId = targetServerId,
+        targetName = targetName,
+        money = money,
+        gold = gold,
+        items = items
+    })
+end)
+
+RegisterNetEvent("coi_police:client:updateSuspectInventory", function(items, money, gold)
+    SendNUIMessage({
+        action = "updateSuspectInventory",
+        items = items,
+        money = money,
+        gold = gold
+    })
+end)
+
 -- PUBLIC /alert COMMAND (Available to ALL players)
 local isAlertPanelOpen = false
 
@@ -741,6 +846,7 @@ local function tryOpenTargetMenu()
         SendNUIMessage({
             action = "openTargetMenu",
             targetName = nameStr,
+            targetServerId = targetServerId,
             isPlayer = isPlayer,
             isCuffed = isTargetCuffed,
             isCarrying = isCarrying

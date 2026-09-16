@@ -1,3 +1,7 @@
+let currentTargetServerId = null; // tracks the currently open target
+let currentSuspectItems = [];
+let selectedConfiscateItem = null;
+
 window.addEventListener('message', function(event) {
     const data = event.data;
 
@@ -21,6 +25,7 @@ window.addEventListener('message', function(event) {
     const cuffLabel = document.getElementById('cuff-action-label');
 
     if (data.action === 'openTargetMenu') {
+        currentTargetServerId = data.targetServerId || null; // store for inventory
         if (data.targetName) {
             targetName.textContent = data.targetName;
         }
@@ -122,6 +127,45 @@ window.addEventListener('message', function(event) {
     } else if (data.action === 'updateActiveCalls') {
         if (data.activeCalls) {
             renderActiveCalls(data.activeCalls);
+        }
+    }
+
+    // 6. Suspect Satchel Inventory UI
+    const invWrapper = document.getElementById('inventory-panel-wrapper');
+    if (data.action === 'openSuspectInventory') {
+        if (data.targetServerId !== undefined) {
+            currentTargetServerId = data.targetServerId;
+        }
+        const suspectNameEl = document.getElementById('inv-suspect-name');
+        const moneyEl = document.getElementById('inv-money-val');
+        const goldEl = document.getElementById('inv-gold-val');
+        const searchInput = document.getElementById('inv-search-input');
+
+        if (suspectNameEl) suspectNameEl.textContent = data.targetName || 'Unknown Citizen';
+        if (moneyEl) moneyEl.textContent = '$' + (Number(data.money || 0).toFixed(2));
+        if (goldEl) goldEl.textContent = (Number(data.gold || 0).toFixed(2)) + ' Gold';
+        if (searchInput) searchInput.value = '';
+
+        currentSuspectItems = data.items || [];
+        renderSuspectItems(currentSuspectItems);
+
+        if (menuWrapper) menuWrapper.classList.add('hidden');
+        if (invWrapper) invWrapper.classList.remove('hidden');
+    } else if (data.action === 'closeSuspectInventory') {
+        if (invWrapper) invWrapper.classList.add('hidden');
+        closeConfiscateModal();
+    } else if (data.action === 'updateSuspectInventory') {
+        if (data.items) {
+            currentSuspectItems = data.items;
+            renderSuspectItems(currentSuspectItems);
+        }
+        if (data.money !== undefined) {
+            const moneyEl = document.getElementById('inv-money-val');
+            if (moneyEl) moneyEl.textContent = '$' + (Number(data.money).toFixed(2));
+        }
+        if (data.gold !== undefined) {
+            const goldEl = document.getElementById('inv-gold-val');
+            if (goldEl) goldEl.textContent = (Number(data.gold).toFixed(2)) + ' Gold';
         }
     }
 });
@@ -349,10 +393,12 @@ document.getElementById('btn-show-id').addEventListener('click', function() {
 });
 
 document.getElementById('btn-open-inventory').addEventListener('click', function() {
-    fetch(`https://${GetParentResourceName()}/actionComingSoon`, {
+    const menuWrapper = document.getElementById('target-menu-wrapper');
+    if (menuWrapper) menuWrapper.classList.add('hidden');
+    fetch(`https://${GetParentResourceName()}/actionSearchInventory`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ msg: 'Open Inventory feature coming soon!' })
+        body: JSON.stringify({ targetServerId: currentTargetServerId })
     });
 });
 
@@ -383,7 +429,161 @@ document.addEventListener('keyup', function(event) {
         if (dashWrapper && !dashWrapper.classList.contains('hidden')) {
             closeSheriffDashboard();
         }
+        const invWrapper = document.getElementById('inventory-panel-wrapper');
+        if (invWrapper && !invWrapper.classList.contains('hidden')) {
+            closeInventory();
+        }
     }
 });
+
+// ==========================================================================
+// SUSPECT SATCHEL INVENTORY LOGIC
+// ==========================================================================
+function closeInventory() {
+    const invWrapper = document.getElementById('inventory-panel-wrapper');
+    if (invWrapper) invWrapper.classList.add('hidden');
+    closeConfiscateModal();
+    fetch(`https://${GetParentResourceName()}/closeInventory`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    }).catch(() => {});
+}
+
+const closeInvBtn = document.getElementById('close-inventory-btn');
+if (closeInvBtn) {
+    closeInvBtn.addEventListener('click', closeInventory);
+}
+
+function renderSuspectItems(items) {
+    const grid = document.getElementById('inv-items-grid');
+    const countEl = document.getElementById('inv-item-count');
+    if (!grid) return;
+
+    const query = (document.getElementById('inv-search-input')?.value || '').trim().toLowerCase();
+    const filtered = (items || []).filter(item => {
+        if (!query) return true;
+        const name = (item.name || '').toLowerCase();
+        const label = (item.label || '').toLowerCase();
+        return name.includes(query) || label.includes(query);
+    });
+
+    if (countEl) {
+        const totalUnique = (items || []).length;
+        countEl.textContent = `${totalUnique} item${totalUnique === 1 ? '' : 's'}`;
+    }
+
+    if (!filtered || filtered.length === 0) {
+        grid.innerHTML = `
+            <div class="inv-empty-state">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>
+                </svg>
+                <span>${query ? 'No matching items in satchel' : 'Satchel appears empty...'}</span>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    filtered.forEach(item => {
+        const itemName = escapeHtml(item.name || 'item');
+        const itemLabel = escapeHtml(item.label || item.name || 'Unknown Item');
+        const count = item.count || 1;
+        const imgSrc = `nui://vorp_inventory/html/img/items/${item.name}.png`;
+
+        html += `
+            <div class="inv-item-card" data-name="${itemName}">
+                <div class="inv-item-left">
+                    <div class="inv-item-icon-box">
+                        <img src="${imgSrc}" alt="${itemLabel}" onerror="this.onerror=null; this.src='https://cfx-nui-vorp_inventory/html/img/items/${item.name}.png'; this.addEventListener('error', () => { this.style.display='none'; this.nextElementSibling.style.display='block'; });" />
+                        <svg class="inv-fallback-svg" viewBox="0 0 24 24" fill="currentColor" style="display:none;">
+                            <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>
+                        </svg>
+                    </div>
+                    <div class="inv-item-text">
+                        <span class="inv-item-label" title="${itemLabel}">${itemLabel}</span>
+                        <span class="inv-item-qty">Qty: ${count}</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-seize-item" onclick="promptConfiscateItem('${itemName}', '${itemLabel.replace(/'/g, "\\'")}', ${count})">
+                    Seize
+                </button>
+            </div>
+        `;
+    });
+
+    grid.innerHTML = html;
+}
+
+// Search Filter Input Listener
+const searchInput = document.getElementById('inv-search-input');
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        renderSuspectItems(currentSuspectItems);
+    });
+}
+
+// Seizure / Confiscate Sub-Modal Logic
+function promptConfiscateItem(name, label, maxCount) {
+    selectedConfiscateItem = { name: name, label: label, maxCount: maxCount };
+
+    const modal = document.getElementById('confiscate-submodal');
+    const titleEl = document.getElementById('confiscate-item-title');
+    const inputEl = document.getElementById('confiscate-amount-input');
+
+    if (titleEl) titleEl.textContent = label;
+    if (inputEl) {
+        inputEl.max = maxCount;
+        inputEl.value = 1;
+    }
+
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeConfiscateModal() {
+    const modal = document.getElementById('confiscate-submodal');
+    if (modal) modal.classList.add('hidden');
+    selectedConfiscateItem = null;
+}
+
+const cancelConfiscateBtn = document.getElementById('btn-cancel-confiscate');
+if (cancelConfiscateBtn) {
+    cancelConfiscateBtn.addEventListener('click', closeConfiscateModal);
+}
+
+const maxConfiscateBtn = document.getElementById('confiscate-max-btn');
+if (maxConfiscateBtn) {
+    maxConfiscateBtn.addEventListener('click', function() {
+        if (!selectedConfiscateItem) return;
+        const inputEl = document.getElementById('confiscate-amount-input');
+        if (inputEl) inputEl.value = selectedConfiscateItem.maxCount;
+    });
+}
+
+const confirmConfiscateBtn = document.getElementById('btn-confirm-confiscate');
+if (confirmConfiscateBtn) {
+    confirmConfiscateBtn.addEventListener('click', function() {
+        if (!selectedConfiscateItem) return;
+
+        const inputEl = document.getElementById('confiscate-amount-input');
+        let amount = parseInt(inputEl ? inputEl.value : 1, 10);
+        if (isNaN(amount) || amount < 1) amount = 1;
+        if (amount > selectedConfiscateItem.maxCount) amount = selectedConfiscateItem.maxCount;
+
+        fetch(`https://${GetParentResourceName()}/actionConfiscateItem`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                targetServerId: currentTargetServerId,
+                itemName: selectedConfiscateItem.name,
+                itemLabel: selectedConfiscateItem.label,
+                count: amount
+            })
+        }).catch(() => {});
+
+        closeConfiscateModal();
+    });
+}
 
 

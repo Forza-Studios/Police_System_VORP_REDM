@@ -111,6 +111,154 @@ RegisterNetEvent("coi_police:server:putInJail", function(targetServerId, coords)
     end
 end)
 
+-- Search Suspect Satchel Inventory
+RegisterNetEvent("coi_police:server:searchInventory", function(targetServerId)
+    local _source = source
+    if not isPolice(_source) then return end
+    if not targetServerId or targetServerId == -1 then return end
+
+    local officerPed = GetPlayerPed(_source)
+    local targetPed = GetPlayerPed(targetServerId)
+
+    if DoesEntityExist(officerPed) and DoesEntityExist(targetPed) then
+        local officerCoords = GetEntityCoords(officerPed)
+        local targetCoords = GetEntityCoords(targetPed)
+        local dist = #(officerCoords - targetCoords)
+
+        if dist > 5.0 then
+            TriggerClientEvent("vorp:TipRight", _source, "Target is too far away!", 3000)
+            return
+        end
+
+        local targetUser = Core.getUser(targetServerId)
+        local targetChar = targetUser and targetUser.getUsedCharacter
+        if not targetChar then
+            TriggerClientEvent("vorp:TipRight", _source, "Unable to inspect target satchel.", 3000)
+            return
+        end
+
+        local targetName = "Unknown Citizen"
+        local first = targetChar.firstname or ""
+        local last = targetChar.lastname or ""
+        local full = (first .. " " .. last):gsub("^%s+", ""):gsub("%s+$", "")
+        if full ~= "" then
+            targetName = full
+        else
+            targetName = GetPlayerName(targetServerId) or "Unknown Citizen"
+        end
+
+        local money = targetChar.money or 0.0
+        local gold = targetChar.gold or 0.0
+
+        local function sendInventoryToOfficer(items)
+            local cleanItems = {}
+            if items and type(items) == "table" then
+                for _, item in pairs(items) do
+                    if item.count and item.count > 0 then
+                        table.insert(cleanItems, {
+                            name = item.name,
+                            label = item.label or item.name,
+                            count = item.count
+                        })
+                    end
+                end
+            end
+            TriggerClientEvent("coi_police:client:receiveSuspectInventory", _source, targetServerId, targetName, money, gold, cleanItems)
+            -- Notify suspect that they are being searched
+            TriggerClientEvent("vorp:TipRight", targetServerId, "A Law Enforcement officer is inspecting your satchel.", 4000)
+        end
+
+        local ok = pcall(function()
+            exports.vorp_inventory:getUserInventoryItems(targetServerId, function(items)
+                sendInventoryToOfficer(items)
+            end)
+        end)
+
+        if not ok then
+            -- Fallback API
+            local ok2 = pcall(function()
+                local VORPInv = exports.vorp_inventory:vorp_inventoryApi()
+                VORPInv.getUserInventoryItems(targetServerId, function(items)
+                    sendInventoryToOfficer(items)
+                end)
+            end)
+            if not ok2 then
+                sendInventoryToOfficer({})
+            end
+        end
+    end
+end)
+
+-- Confiscate Item from Suspect into Evidence
+RegisterNetEvent("coi_police:server:confiscateItem", function(targetServerId, itemName, itemLabel, count)
+    local _source = source
+    if not isPolice(_source) then return end
+    if not targetServerId or targetServerId == -1 or not itemName then return end
+
+    local officerPed = GetPlayerPed(_source)
+    local targetPed = GetPlayerPed(targetServerId)
+
+    if DoesEntityExist(officerPed) and DoesEntityExist(targetPed) then
+        local officerCoords = GetEntityCoords(officerPed)
+        local targetCoords = GetEntityCoords(targetPed)
+        local dist = #(officerCoords - targetCoords)
+
+        if dist > 5.0 then
+            TriggerClientEvent("vorp:TipRight", _source, "Target is too far away!", 3000)
+            return
+        end
+
+        count = math.floor(tonumber(count) or 1)
+        if count <= 0 then count = 1 end
+
+        -- Remove from suspect
+        local removed = false
+        pcall(function()
+            exports.vorp_inventory:subItem(_source, itemName, count, nil, targetServerId)
+            removed = true
+        end)
+
+        if not removed then
+            pcall(function()
+                exports.vorp_inventory:subItem(targetServerId, itemName, count)
+                removed = true
+            end)
+        end
+
+        -- Add to officer inventory
+        pcall(function()
+            exports.vorp_inventory:addItem(_source, itemName, count)
+        end)
+
+        TriggerClientEvent("vorp:TipRight", _source, ("Confiscated %s x%d into county evidence."):format(itemLabel or itemName, count), 4000)
+        TriggerClientEvent("vorp:TipRight", targetServerId, ("Sheriff seized %s x%d from your satchel as evidence."):format(itemLabel or itemName, count), 4000)
+
+        -- Refresh officer's view of suspect inventory
+        local targetUser = Core.getUser(targetServerId)
+        local targetChar = targetUser and targetUser.getUsedCharacter
+        local money = targetChar and targetChar.money or 0.0
+        local gold = targetChar and targetChar.gold or 0.0
+
+        pcall(function()
+            exports.vorp_inventory:getUserInventoryItems(targetServerId, function(items)
+                local cleanItems = {}
+                if items and type(items) == "table" then
+                    for _, item in pairs(items) do
+                        if item.count and item.count > 0 then
+                            table.insert(cleanItems, {
+                                name = item.name,
+                                label = item.label or item.name,
+                                count = item.count
+                            })
+                        end
+                    end
+                end
+                TriggerClientEvent("coi_police:client:updateSuspectInventory", _source, cleanItems, money, gold)
+            end)
+        end)
+    end
+end)
+
 -- Sheriff Locker / Stash Event
 RegisterNetEvent("coi_police:server:openSheriffStash", function()
     local _source = source
