@@ -5,7 +5,19 @@ POLICE_NPCS = {
         y = 806.3165,
         z = 118.3921,
         heading = 243.3754,
-        blip = -693644997
+        blip = -693644997,
+        blipLabel = "Sheriff Office",
+        dutyOnly = false -- Available at all times to go on/off duty
+    },
+    {
+        ped = "cs_mrsadler", -- Police Lady / Reinforcement (Sadie Adler)
+        x = -270.1339,
+        y = 805.1387,
+        z = 119.3438,
+        heading = 197.9014,
+        blip = -480291173,
+        blipLabel = "Sheriff Reinforcement",
+        dutyOnly = true -- Visible to on-duty sheriffs only
     }
 }
 

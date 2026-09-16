@@ -1,5 +1,8 @@
 local spawnedPeds = {}
 local spawnedBlips = {}
+local spawnedDutyPeds = {}
+local spawnedDutyBlips = {}
+local updateDutyNPCs = nil
 local isPoliceOnDuty = false
 local isHandcuffed = false
 
@@ -33,6 +36,10 @@ local function notify(msg)
 end
 
 local function updateDutyUI(onDuty)
+    if updateDutyNPCs then
+        updateDutyNPCs(onDuty)
+    end
+
     if Config and Config.EnableDutyPill then
         if onDuty then
             SendNUIMessage({
@@ -1072,57 +1079,113 @@ end, false)
 
 RegisterKeyMapping("toggledoor", "Lock or Unlock Cell Door", "keyboard", "K")
 
-local function spawnPoliceNPCs()
-    if not POLICE_NPCS or #POLICE_NPCS == 0 then return end
+local function spawnSingleNPC(index, data)
+    local pedHandle = nil
+    local modelHash = type(data.ped) == "number" and data.ped or GetHashKey(data.ped)
 
-    for index, data in ipairs(POLICE_NPCS) do
-        local modelHash = type(data.ped) == "number" and data.ped or GetHashKey(data.ped)
-
-        if IsModelValid(modelHash) then
-            if not HasModelLoaded(modelHash) then
-                RequestModel(modelHash, false)
-                local timeout = 0
-                while not HasModelLoaded(modelHash) and timeout < 100 do
-                    Wait(50)
-                    timeout = timeout + 1
-                end
+    if IsModelValid(modelHash) then
+        if not HasModelLoaded(modelHash) then
+            RequestModel(modelHash, false)
+            local timeout = 0
+            while not HasModelLoaded(modelHash) and timeout < 100 do
+                Wait(50)
+                timeout = timeout + 1
             end
-
-            if HasModelLoaded(modelHash) then
-                local ped = CreatePed(modelHash, data.x, data.y, data.z, data.heading, false, false, false, false)
-                repeat Wait(10) until DoesEntityExist(ped)
-
-                SetRandomOutfitVariation(ped, true)
-                PlaceEntityOnGroundProperly(ped)
-                SetEntityCanBeDamaged(ped, false)
-                SetEntityInvincible(ped, true)
-                SetBlockingOfNonTemporaryEvents(ped, true)
-                FreezeEntityPosition(ped, true)
-
-                table.insert(spawnedPeds, ped)
-                SetModelAsNoLongerNeeded(modelHash)
-            else
-                print(("^1[coi_police] Error: Could not load model %s for NPC #%d^7"):format(data.ped, index))
-            end
-        else
-            print(("^1[coi_police] Error: Invalid model %s for NPC #%d^7"):format(data.ped, index))
         end
 
-        if data.blip then
-            local sprite = type(data.blip) == "number" and data.blip or GetHashKey(data.blip)
-            local blipStyle = data.blipStyle or 1664425300
-            local blip = Citizen.InvokeNative(0x554D9D53F696D002, blipStyle, data.x, data.y, data.z)
-            if blip and blip ~= 0 then
-                SetBlipSprite(blip, sprite, true)
-                local varString = CreateVarString(10, 'LITERAL_STRING', "Sheriff Office")
-                Citizen.InvokeNative(0x9CB1A1623062F402, blip, varString)
-                table.insert(spawnedBlips, blip)
+        if HasModelLoaded(modelHash) then
+            local ped = CreatePed(modelHash, data.x, data.y, data.z, data.heading, false, false, false, false)
+            repeat Wait(10) until DoesEntityExist(ped)
+
+            SetRandomOutfitVariation(ped, true)
+            PlaceEntityOnGroundProperly(ped)
+            SetEntityCanBeDamaged(ped, false)
+            SetEntityInvincible(ped, true)
+            SetBlockingOfNonTemporaryEvents(ped, true)
+            FreezeEntityPosition(ped, true)
+
+            pedHandle = ped
+            SetModelAsNoLongerNeeded(modelHash)
+        else
+            print(("^1[coi_police] Error: Could not load model %s for NPC #%d^7"):format(tostring(data.ped), index))
+        end
+    else
+        print(("^1[coi_police] Error: Invalid model %s for NPC #%d^7"):format(tostring(data.ped), index))
+    end
+
+    local blipHandle = nil
+    if data.blip then
+        local sprite = type(data.blip) == "number" and data.blip or GetHashKey(data.blip)
+        local blipStyle = data.blipStyle or 1664425300
+        local blip = Citizen.InvokeNative(0x554D9D53F696D002, blipStyle, data.x, data.y, data.z)
+        if blip and blip ~= 0 then
+            SetBlipSprite(blip, sprite, true)
+            local label = data.blipLabel or "Sheriff Office"
+            local varString = CreateVarString(10, 'LITERAL_STRING', label)
+            Citizen.InvokeNative(0x9CB1A1623062F402, blip, varString)
+            blipHandle = blip
+        end
+    end
+
+    return pedHandle, blipHandle
+end
+
+local function spawnPermanentNPCs()
+    if not POLICE_NPCS or #POLICE_NPCS == 0 then return end
+    for index, data in ipairs(POLICE_NPCS) do
+        if not data.dutyOnly then
+            local ped, blip = spawnSingleNPC(index, data)
+            if ped then table.insert(spawnedPeds, ped) end
+            if blip then table.insert(spawnedBlips, blip) end
+        end
+    end
+end
+
+local function spawnDutyOnlyNPCs()
+    if not POLICE_NPCS or #POLICE_NPCS == 0 then return end
+    if #spawnedDutyPeds > 0 or #spawnedDutyBlips > 0 then return end
+
+    for index, data in ipairs(POLICE_NPCS) do
+        if data.dutyOnly then
+            local ped, blip = spawnSingleNPC(index, data)
+            if ped then
+                table.insert(spawnedDutyPeds, ped)
+                table.insert(spawnedPeds, ped)
+            end
+            if blip then
+                table.insert(spawnedDutyBlips, blip)
             end
         end
     end
 end
 
+local function removeDutyOnlyNPCs()
+    for _, ped in ipairs(spawnedDutyPeds) do
+        if DoesEntityExist(ped) then
+            DeletePed(ped)
+        end
+    end
+    spawnedDutyPeds = {}
+
+    for _, blip in ipairs(spawnedDutyBlips) do
+        if DoesBlipExist(blip) then
+            RemoveBlip(blip)
+        end
+    end
+    spawnedDutyBlips = {}
+end
+
+updateDutyNPCs = function(onDuty)
+    if onDuty and isAuthorizedOnDuty() then
+        spawnDutyOnlyNPCs()
+    else
+        removeDutyOnlyNPCs()
+    end
+end
+
 local function cleanup()
+    removeDutyOnlyNPCs()
+
     for _, ped in ipairs(spawnedPeds) do
         if DoesEntityExist(ped) then
             DeletePed(ped)
@@ -1164,7 +1227,10 @@ end
 
 -- MAIN INTERACTION THREAD FOR DUTY NPC & TARGET HANDCUFFING
 CreateThread(function()
-    spawnPoliceNPCs()
+    spawnPermanentNPCs()
+    if isPoliceOnDuty then
+        spawnDutyOnlyNPCs()
+    end
     TriggerServerEvent("coi_police:server:requestDoorStates")
 
     local groupTitle = CreateVarString(10, 'LITERAL_STRING', "Sheriff Office")
@@ -1187,26 +1253,32 @@ CreateThread(function()
 
             if hasPoliceJob() and POLICE_NPCS and #POLICE_NPCS > 0 then
                 for _, npcData in ipairs(POLICE_NPCS) do
-                    local dist = #(playerCoords - vector3(npcData.x, npcData.y, npcData.z))
-                    if dist <= npcInteractionDist then
-                        sleep = 0
+                    if not npcData.dutyOnly or isPoliceOnDuty then
+                        local dist = #(playerCoords - vector3(npcData.x, npcData.y, npcData.z))
+                        if dist <= npcInteractionDist then
+                            sleep = 0
 
-                        local actionText = isPoliceOnDuty and "Go Off Duty" or "Go On Duty"
-                        createDutyPrompt(actionText)
-                        PromptSetActiveGroupThisFrame(dutyPromptGroup, groupTitle, 0, 0, 0, 0)
-                        DrawText3D(npcData.x, npcData.y, npcData.z + 1.1, "[G] " .. actionText)
-
-                        if isDutyPromptPressed() then
-                            isPoliceOnDuty = not isPoliceOnDuty
-                            if isPoliceOnDuty then
-                                notify("You are now ON duty!")
+                            if npcData.dutyOnly then
+                                DrawText3D(npcData.x, npcData.y, npcData.z + 1.1, npcData.blipLabel or "Sheriff Reinforcement")
                             else
-                                notify("You are now OFF duty!")
+                                local actionText = isPoliceOnDuty and "Go Off Duty" or "Go On Duty"
+                                createDutyPrompt(actionText)
+                                PromptSetActiveGroupThisFrame(dutyPromptGroup, groupTitle, 0, 0, 0, 0)
+                                DrawText3D(npcData.x, npcData.y, npcData.z + 1.1, "[G] " .. actionText)
+
+                                if isDutyPromptPressed() then
+                                    isPoliceOnDuty = not isPoliceOnDuty
+                                    if isPoliceOnDuty then
+                                        notify("You are now ON duty!")
+                                    else
+                                        notify("You are now OFF duty!")
+                                    end
+                                    updateDutyUI(isPoliceOnDuty)
+                                    Wait(800)
+                                end
                             end
-                            updateDutyUI(isPoliceOnDuty)
-                            Wait(800)
+                            break
                         end
-                        break
                     end
                 end
             end
