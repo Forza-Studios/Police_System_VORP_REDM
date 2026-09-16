@@ -168,6 +168,21 @@ window.addEventListener('message', function(event) {
             if (goldEl) goldEl.textContent = (Number(data.gold).toFixed(2)) + ' Gold';
         }
     }
+
+    // 7. Reinforcement Vehicle Menu UI
+    const reinforcementWrapper = document.getElementById('reinforcement-menu-wrapper');
+    if (data.action === 'openReinforcementMenu') {
+        if (data.vehicles) {
+            renderReinforcementVehicles(data.vehicles);
+        }
+        if (reinforcementWrapper) {
+            reinforcementWrapper.classList.remove('hidden');
+        }
+    } else if (data.action === 'closeReinforcementMenu') {
+        if (reinforcementWrapper) {
+            reinforcementWrapper.classList.add('hidden');
+        }
+    }
 });
 
 function escapeHtml(str) {
@@ -433,6 +448,10 @@ document.addEventListener('keyup', function(event) {
         if (invWrapper && !invWrapper.classList.contains('hidden')) {
             closeInventory();
         }
+        const reinforcementWrapper = document.getElementById('reinforcement-menu-wrapper');
+        if (reinforcementWrapper && !reinforcementWrapper.classList.contains('hidden')) {
+            closeReinforcementMenu();
+        }
     }
 });
 
@@ -586,4 +605,81 @@ if (confirmConfiscateBtn) {
     });
 }
 
+// ==========================================================================
+// REINFORCEMENT VEHICLE MENU LOGIC
+// ==========================================================================
+function closeReinforcementMenu() {
+    const wrapper = document.getElementById('reinforcement-menu-wrapper');
+    if (wrapper) wrapper.classList.add('hidden');
+    fetch(`https://${GetParentResourceName()}/closeReinforcementMenu`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    }).catch(() => {});
+}
 
+const closeReinforcementBtn = document.getElementById('close-reinforcement-btn');
+if (closeReinforcementBtn) {
+    closeReinforcementBtn.addEventListener('click', closeReinforcementMenu);
+}
+
+function renderReinforcementVehicles(vehicles) {
+    const grid = document.getElementById('reinforcement-vehicles-grid');
+    if (!grid) return;
+
+    if (!vehicles || vehicles.length === 0) {
+        grid.innerHTML = `
+            <div class="reinforcement-empty-state">
+                <p>No reinforcement vehicles available.</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    vehicles.forEach(vehicle => {
+        const label = escapeHtml(vehicle.label || 'Unknown Vehicle');
+        const model = escapeHtml(vehicle.model || '');
+        const desc = escapeHtml(vehicle.desc || '');
+        const imgSrc = vehicle.image ? `img/${vehicle.image}` : '';
+
+        html += `
+            <div class="reinforcement-vehicle-card">
+                <div class="vehicle-image-wrap">
+                    ${imgSrc ? `<img src="${imgSrc}" alt="${label}" class="vehicle-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />` : ''}
+                    <div class="vehicle-image-fallback" ${imgSrc ? 'style="display:none;"' : ''}>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                        </svg>
+                    </div>
+                    <div class="vehicle-image-overlay"></div>
+                </div>
+                <div class="vehicle-info">
+                    <h3 class="vehicle-label">${label}</h3>
+                    <span class="vehicle-model">${model}</span>
+                    ${desc ? `<p class="vehicle-desc">${desc}</p>` : ''}
+                </div>
+                <button type="button" class="btn-request-vehicle" onclick="requestReinforcement('${model}', '${label.replace(/'/g, "\\\'")}')">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6.4-4.8-6.4 4.8 2.4-7.2-6-4.8h7.6z"/>
+                    </svg>
+                    Request Vehicle
+                </button>
+            </div>
+        `;
+    });
+
+    grid.innerHTML = html;
+}
+
+function requestReinforcement(model, label) {
+    fetch(`https://${GetParentResourceName()}/spawnReinforcement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: model, label: label })
+    }).catch(() => {});
+
+    // Close the menu after requesting
+    const wrapper = document.getElementById('reinforcement-menu-wrapper');
+    if (wrapper) wrapper.classList.add('hidden');
+}

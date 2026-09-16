@@ -24,5 +24,11 @@ ui_page 'html/index.html'
 files {
     'html/index.html',
     'html/style.css',
-    'html/script.js'
+    'html/script.js',
+    'html/img/sheriff_wagon.jpg',
+    'html/img/prison_wagon.jpg',
+    'html/img/gatling_wagon.jpg',
+    'html/img/army_supply_wagon.jpg',
+    'html/img/deputy_stagecoach.jpg',
+    'html/img/utility_wagon.jpg'
 }

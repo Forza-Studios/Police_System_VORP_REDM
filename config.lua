@@ -67,5 +67,18 @@ Config = {
         coords = vector3(-277.0092, 811.1743, 119.5367),
         heading = 100.2950,
         key = 0x760A9C6F -- Key 'G'
+    },
+
+    -- Reinforcement Vehicle Requisition (Near Sadie Adler NPC)
+    ReinforcementKey = 0x6319DB71, -- Key 'Y'
+    ReinforcementSpawn = vector4(-263.5977, 808.7073, 118.7609, 189.0707),
+
+    ReinforcementVehicles = {
+        { label = "Sheriff Wagon", model = "POLICEWAGON01X", image = "sheriff_wagon.jpg", desc = "Standard law enforcement patrol wagon" },
+        { label = "Prison Wagon", model = "WAGONPRISON01X", image = "prison_wagon.jpg", desc = "Heavy iron-bar prisoner transport" },
+        { label = "Heavy Gatling Wagon", model = "POLICEWAGONGATLING01X", image = "gatling_wagon.jpg", desc = "Armored wagon with mounted Gatling gun" },
+        { label = "Army Supply Wagon", model = "ARMYSUPPLYWAGON", image = "army_supply_wagon.jpg", desc = "Military supply & munitions transport" },
+        { label = "Deputy Stagecoach", model = "STAGECOACH001X", image = "deputy_stagecoach.jpg", desc = "Elegant passenger stagecoach for escorts" },
+        { label = "Utility Wagon", model = "UTILLIWAG", image = "utility_wagon.jpg", desc = "Rugged flatbed for general hauling" }
     }
 }

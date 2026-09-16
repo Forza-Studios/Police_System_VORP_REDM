@@ -468,6 +468,63 @@
         </div>
     </div>
 
+    <!-- Reinforcement Vehicle Requisition Menu -->
+    <div id="reinforcement-menu-wrapper" class="hidden">
+        <div class="reinforcement-modal">
+            <!-- Brass Corner Accents -->
+            <div class="corner-brass top-left"></div>
+            <div class="corner-brass top-right"></div>
+            <div class="corner-brass bottom-left"></div>
+            <div class="corner-brass bottom-right"></div>
+
+            <!-- Header -->
+            <div class="reinforcement-header">
+                <div class="reinforcement-title-group">
+                    <div class="reinforcement-badge-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6.4-4.8-6.4 4.8 2.4-7.2-6-4.8h7.6z"/>
+                        </svg>
+                    </div>
+                    <div class="reinforcement-title-text">
+                        <h1 class="reinforcement-title">SHERIFF REINFORCEMENT REQUISITION</h1>
+                        <p class="reinforcement-subtitle">OFFICIAL WAGON & VEHICLE DEPLOYMENT CATALOG</p>
+                    </div>
+                </div>
+                <button id="close-reinforcement-btn" class="close-dash-btn" title="Close Catalog">&times;</button>
+            </div>
+
+            <!-- Divider -->
+            <div class="reinforcement-divider">
+                <div class="divider-line"></div>
+                <span class="divider-stamp">AUTHORIZED PERSONNEL ONLY</span>
+                <div class="divider-line"></div>
+            </div>
+
+            <!-- Vehicle Cards Grid -->
+            <div class="reinforcement-body">
+                <div id="reinforcement-vehicles-grid" class="reinforcement-grid">
+                    <!-- Populated dynamically by script.js -->
+                    <div class="reinforcement-empty-state">
+                        <p>No reinforcement vehicles available.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="reinforcement-footer">
+                <div class="reinforcement-footer-seal">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="seal-star">
+                        <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6.4-4.8-6.4 4.8 2.4-7.2-6-4.8h7.6z"/>
+                    </svg>
+                    <span>VALENTINE SHERIFF'S DEPARTMENT • REINFORCEMENT DIVISION</span>
+                </div>
+                <div class="reinforcement-footer-hint">
+                    Press <kbd>ESC</kbd> to close catalog
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>

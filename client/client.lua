@@ -21,6 +21,12 @@ local cuffPromptHandle = nil
 local targetCuffStates = {} -- Cache for target player cuffed states
 local cuffedNPCs = {}        -- Cache for NPC cuffed states
 
+-- Reinforcement Vehicle Menu
+local reinforcementPromptGroup = GetRandomIntInRange(0, 0xffffff)
+local reinforcementPromptHandle = nil
+local isReinforcementMenuOpen = false
+local lastSpawnedReinforcement = nil
+
 local function hasPoliceJob()
     local character = LocalPlayer.state.Character
     local job = character and (character.Job or character.job)
@@ -416,6 +422,137 @@ end)
 RegisterNUICallback("actionPutInJail", function(data, cb)
     SetNuiFocus(false, false)
     tryPutTargetInJail()
+    cb("ok")
+end)
+
+-- REINFORCEMENT VEHICLE MENU NUI CALLBACKS
+local function createReinforcementPrompt()
+    local keyHash = (Config and Config.ReinforcementKey) or 0xF10FB3E4
+    local str = CreateVarString(10, 'LITERAL_STRING', "Request Reinforcement")
+    if not reinforcementPromptHandle then
+        reinforcementPromptHandle = PromptRegisterBegin()
+        PromptSetControlAction(reinforcementPromptHandle, keyHash)
+        PromptSetText(reinforcementPromptHandle, str)
+        PromptSetEnabled(reinforcementPromptHandle, true)
+        PromptSetVisible(reinforcementPromptHandle, true)
+        PromptSetStandardMode(reinforcementPromptHandle, true)
+        PromptSetGroup(reinforcementPromptHandle, reinforcementPromptGroup)
+        PromptRegisterEnd(reinforcementPromptHandle)
+    else
+        PromptSetText(reinforcementPromptHandle, str)
+    end
+end
+
+local function isReinforcementPromptPressed()
+    if reinforcementPromptHandle then
+        if PromptHasStandardModeCompleted(reinforcementPromptHandle)
+        or PromptHasHoldModeCompleted(reinforcementPromptHandle)
+        or PromptIsJustPressed(reinforcementPromptHandle)
+        or PromptIsJustReleased(reinforcementPromptHandle) then
+            return true
+        end
+    end
+
+    local keyHash = (Config and Config.ReinforcementKey) or 0xF10FB3E4
+    for group = 0, 2 do
+        if IsControlJustPressed(group, keyHash) or IsDisabledControlJustPressed(group, keyHash) then
+            return true
+        end
+    end
+    return false
+end
+
+local function openReinforcementMenu()
+    if not isAuthorizedOnDuty() then
+        notify("You must be ON duty to request reinforcements!")
+        return
+    end
+
+    if not Config or not Config.ReinforcementVehicles or #Config.ReinforcementVehicles == 0 then
+        notify("No reinforcement vehicles configured!")
+        return
+    end
+
+    -- Build vehicle data for NUI
+    local vehicleData = {}
+    for _, v in ipairs(Config.ReinforcementVehicles) do
+        table.insert(vehicleData, {
+            label = v.label,
+            model = v.model,
+            image = v.image or "",
+            desc = v.desc or ""
+        })
+    end
+
+    isReinforcementMenuOpen = true
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = "openReinforcementMenu",
+        vehicles = vehicleData
+    })
+end
+
+RegisterNUICallback("closeReinforcementMenu", function(data, cb)
+    SetNuiFocus(false, false)
+    isReinforcementMenuOpen = false
+    cb("ok")
+end)
+
+RegisterNUICallback("spawnReinforcement", function(data, cb)
+    SetNuiFocus(false, false)
+    isReinforcementMenuOpen = false
+
+    if not isAuthorizedOnDuty() then
+        notify("You must be ON duty to request reinforcements!")
+        cb("ok")
+        return
+    end
+
+    local modelName = data and data.model
+    if not modelName or modelName == "" then
+        notify("Invalid vehicle model!")
+        cb("ok")
+        return
+    end
+
+    -- Delete previously spawned reinforcement vehicle
+    if lastSpawnedReinforcement and DoesEntityExist(lastSpawnedReinforcement) then
+        DeleteVehicle(lastSpawnedReinforcement)
+        DeleteEntity(lastSpawnedReinforcement)
+        lastSpawnedReinforcement = nil
+    end
+
+    local spawnCoords = Config.ReinforcementSpawn or vector4(-263.5977, 808.7073, 118.7609, 189.0707)
+    local modelHash = GetHashKey(modelName)
+
+    if not IsModelValid(modelHash) then
+        notify("Vehicle model is not valid: " .. modelName)
+        cb("ok")
+        return
+    end
+
+    RequestModel(modelHash, false)
+    local timeout = 0
+    while not HasModelLoaded(modelHash) and timeout < 100 do
+        Wait(50)
+        timeout = timeout + 1
+    end
+
+    if not HasModelLoaded(modelHash) then
+        notify("Failed to load vehicle model: " .. modelName)
+        cb("ok")
+        return
+    end
+
+    local vehicle = Citizen.InvokeNative(0xAF35D0D2583051B0, modelHash, spawnCoords.x, spawnCoords.y, spawnCoords.z, spawnCoords.w, true, false, false, false)
+    if vehicle and DoesEntityExist(vehicle) then
+        lastSpawnedReinforcement = vehicle
+        SetModelAsNoLongerNeeded(modelHash)
+        notify("Reinforcement vehicle delivered: " .. (data.label or modelName))
+    else
+        notify("Failed to spawn reinforcement vehicle!")
+    end
+
     cb("ok")
 end)
 
@@ -1267,13 +1404,26 @@ local function cleanup()
         cuffPromptHandle = nil
     end
 
+    if reinforcementPromptHandle then
+        PromptDelete(reinforcementPromptHandle)
+        reinforcementPromptHandle = nil
+    end
+
+    if lastSpawnedReinforcement and DoesEntityExist(lastSpawnedReinforcement) then
+        DeleteVehicle(lastSpawnedReinforcement)
+        DeleteEntity(lastSpawnedReinforcement)
+        lastSpawnedReinforcement = nil
+    end
+
     SetNuiFocus(false, false)
     SendNUIMessage({ action = "closeTargetMenu" })
     SendNUIMessage({ action = "closeAlertPanel" })
     SendNUIMessage({ action = "hideCallAlert" })
     SendNUIMessage({ action = "closeSheriffDashboard" })
+    SendNUIMessage({ action = "closeReinforcementMenu" })
     isAlertPanelOpen = false
     isDashboardOpen = false
+    isReinforcementMenuOpen = false
     updateDutyUI(false)
 end
 
@@ -1311,7 +1461,16 @@ CreateThread(function()
                             sleep = 0
 
                             if npcData.dutyOnly then
-                                DrawText3D(npcData.x, npcData.y, npcData.z + 1.1, npcData.blipLabel or "Sheriff Reinforcement")
+                                -- Reinforcement NPC: show K prompt
+                                local reinforceTitle = CreateVarString(10, 'LITERAL_STRING', "Sheriff Reinforcement")
+                                createReinforcementPrompt()
+                                PromptSetActiveGroupThisFrame(reinforcementPromptGroup, reinforceTitle, 0, 0, 0, 0)
+                                DrawText3D(npcData.x, npcData.y, npcData.z + 1.1, "Request Reinforcement")
+
+                                if isReinforcementPromptPressed() then
+                                    openReinforcementMenu()
+                                    Wait(800)
+                                end
                             else
                                 local actionText = isPoliceOnDuty and "Go Off Duty" or "Go On Duty"
                                 createDutyPrompt(actionText)
