@@ -2351,3 +2351,314 @@ body {
     margin: 0 2px;
 }
 
+/* ==========================================================================
+   CITIZEN IDENTIFICATION CARD MODAL (SHOW ID - RDR2 AUTHENTIC CERTIFICATE)
+   ========================================================================== */
+#id-card-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 8, 6, 0.78);
+    z-index: 10000;
+    backdrop-filter: blur(2px);
+}
+
+#id-card-wrapper.hidden {
+    display: none !important;
+}
+
+.id-card-modal {
+    position: relative;
+    width: 480px;
+    background: #1B1714;
+    border: 2px solid #8A6A3A;
+    border-radius: 10px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85),
+                inset 0 0 40px rgba(10, 8, 6, 0.7);
+    overflow: hidden;
+    animation: idCardReveal 0.22s ease-out;
+}
+
+@keyframes idCardReveal {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.id-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px 14px;
+    background: linear-gradient(180deg, #2A211C 0%, #1B1714 100%);
+    border-bottom: 1px solid rgba(138, 106, 58, 0.4);
+}
+
+.id-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.id-card-badge-icon {
+    width: 42px;
+    height: 42px;
+    background: #14100D;
+    border: 1px solid #C9A227;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #C9A227;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), inset 0 0 6px rgba(201, 162, 39, 0.2);
+    flex-shrink: 0;
+}
+
+.id-card-badge-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.id-card-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.id-card-state {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    color: #C9A227;
+    letter-spacing: 2.5px;
+    font-weight: 700;
+}
+
+.id-card-title {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    font-weight: 900;
+    color: #F5E6C8;
+    letter-spacing: 1.5px;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.id-card-subtitle {
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 11px;
+    color: #8A6A3A;
+    letter-spacing: 1px;
+}
+
+.id-card-divider {
+    display: flex;
+    align-items: center;
+    padding: 8px 22px;
+    gap: 12px;
+}
+
+.id-card-divider .divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #8A6A3A, transparent);
+}
+
+.id-card-divider .divider-stamp {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    font-weight: 700;
+    color: #C9A227;
+    letter-spacing: 3px;
+    padding: 2px 10px;
+    border: 1px solid rgba(201, 162, 39, 0.4);
+    border-radius: 3px;
+    background: rgba(20, 16, 13, 0.6);
+}
+
+.id-card-body {
+    display: flex;
+    gap: 18px;
+    padding: 12px 22px 18px;
+}
+
+.id-card-portrait-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.id-card-portrait-frame {
+    width: 90px;
+    height: 110px;
+    background: #14100D;
+    border: 2px solid #8A6A3A;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8A6A3A;
+    box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.9), 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+
+.id-card-portrait-frame .portrait-avatar {
+    width: 56px;
+    height: 56px;
+    opacity: 0.85;
+}
+
+.id-stamp-badge {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    font-weight: 900;
+    color: #F5E6C8;
+    letter-spacing: 2px;
+    background: #6B1E1E;
+    border: 1px solid #C9A227;
+    padding: 3px 8px;
+    border-radius: 3px;
+    transform: rotate(-3deg);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.id-card-fields {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.id-field-row {
+    background: #14100D;
+    border: 1px solid rgba(138, 106, 58, 0.35);
+    border-radius: 6px;
+    padding: 6px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.id-field-row.highlight-row {
+    border-color: #C9A227;
+    background: linear-gradient(90deg, rgba(42, 33, 28, 0.8) 0%, #14100D 100%);
+}
+
+.id-field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.id-field-col {
+    background: #14100D;
+    border: 1px solid rgba(138, 106, 58, 0.35);
+    border-radius: 6px;
+    padding: 6px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.field-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    font-weight: 700;
+    color: #8A6A3A;
+    letter-spacing: 1.5px;
+}
+
+.field-value {
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 15px;
+    color: #F5E6C8;
+    font-weight: 600;
+}
+
+.field-value.name-val {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #F5E6C8;
+}
+
+.field-value.id-val {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: #C9A227;
+}
+
+.field-value.status-val {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: #D6C3A5;
+}
+
+.field-value.job-val {
+    color: #F5E6C8;
+    font-size: 15px;
+}
+
+.field-value.grade-val {
+    color: #D6C3A5;
+    font-size: 14px;
+}
+
+.id-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 22px;
+    background: linear-gradient(0deg, #2A211C 0%, #1B1714 100%);
+    border-top: 1px solid rgba(138, 106, 58, 0.3);
+}
+
+.id-card-seal-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.id-seal-icon {
+    width: 14px;
+    height: 14px;
+    color: #C9A227;
+}
+
+.id-seal-text {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    color: #8A6A3A;
+    letter-spacing: 1.5px;
+}
+
+.id-card-hint {
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 11px;
+    color: #D6C3A5;
+    opacity: 0.6;
+}
+
+.id-card-hint kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    background: rgba(42, 33, 28, 0.8);
+    border: 1px solid #8A6A3A;
+    border-radius: 3px;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    color: #F5E6C8;
+    margin: 0 2px;
+}
+

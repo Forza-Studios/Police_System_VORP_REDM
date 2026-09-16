@@ -183,6 +183,25 @@ window.addEventListener('message', function(event) {
             reinforcementWrapper.classList.add('hidden');
         }
     }
+
+    // 8. Citizen Identification Card Modal UI (Show ID)
+    const idCardWrapper = document.getElementById('id-card-wrapper');
+    if (data.action === 'openIdCard') {
+        const nameEl = document.getElementById('id-card-name');
+        const idEl = document.getElementById('id-card-server-id');
+        const jobEl = document.getElementById('id-card-job');
+        const gradeEl = document.getElementById('id-card-grade');
+
+        if (nameEl) nameEl.textContent = data.name || 'Unknown Citizen';
+        if (idEl) idEl.textContent = (data.targetId !== undefined && data.targetId !== null) ? ('ID: ' + data.targetId) : 'ID: ?';
+        if (jobEl) jobEl.textContent = data.job || 'Civilian / Unemployed';
+        if (gradeEl) gradeEl.textContent = (data.grade !== undefined && data.grade !== null) ? (typeof data.grade === 'number' ? ('Grade ' + data.grade) : data.grade) : 'Citizen';
+
+        if (menuWrapper) menuWrapper.classList.add('hidden');
+        if (idCardWrapper) idCardWrapper.classList.remove('hidden');
+    } else if (data.action === 'closeIdCard') {
+        if (idCardWrapper) idCardWrapper.classList.add('hidden');
+    }
 });
 
 function escapeHtml(str) {
@@ -400,12 +419,29 @@ document.getElementById('btn-carry').addEventListener('click', function() {
 });
 
 document.getElementById('btn-show-id').addEventListener('click', function() {
-    fetch(`https://${GetParentResourceName()}/actionComingSoon`, {
+    const menuWrapper = document.getElementById('target-menu-wrapper');
+    if (menuWrapper) menuWrapper.classList.add('hidden');
+    fetch(`https://${GetParentResourceName()}/actionShowId`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ msg: 'Show ID feature coming soon!' })
+        body: JSON.stringify({ targetServerId: currentTargetServerId })
     });
 });
+
+function closeIdCard() {
+    const idCardWrapper = document.getElementById('id-card-wrapper');
+    if (idCardWrapper) idCardWrapper.classList.add('hidden');
+    fetch(`https://${GetParentResourceName()}/closeIdCard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    }).catch(() => {});
+}
+
+const closeIdCardBtn = document.getElementById('close-id-card-btn');
+if (closeIdCardBtn) {
+    closeIdCardBtn.addEventListener('click', closeIdCard);
+}
 
 document.getElementById('btn-open-inventory').addEventListener('click', function() {
     const menuWrapper = document.getElementById('target-menu-wrapper');
@@ -451,6 +487,10 @@ document.addEventListener('keyup', function(event) {
         const reinforcementWrapper = document.getElementById('reinforcement-menu-wrapper');
         if (reinforcementWrapper && !reinforcementWrapper.classList.contains('hidden')) {
             closeReinforcementMenu();
+        }
+        const idCardWrapper = document.getElementById('id-card-wrapper');
+        if (idCardWrapper && !idCardWrapper.classList.contains('hidden')) {
+            closeIdCard();
         }
     }
 });

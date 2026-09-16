@@ -6,6 +6,8 @@ local updateDutyNPCs = nil
 local clearDistressBlips = nil
 local isPoliceOnDuty = false
 local isHandcuffed = false
+local cuffAnimDict = nil   -- Persisted anim dict for handcuffed state
+local cuffAnimName = nil   -- Persisted anim name for handcuffed state
 
 local isCarrying = false
 local carriedPedHandle = nil
@@ -219,17 +221,17 @@ local function isCuffPromptPressed()
 end
 
 local officerAnims = {
-    { dict = "script_proc@robbing@cuffs", name = "cuff_cop" },
-    { dict = "script_re@cuffs", name = "cuff_cop" },
-    { dict = "mech_inventory@cuffs", name = "cuff_cop" },
-    { dict = "cnv_camp@generic@cuffs", name = "cuff_cop" },
-    { dict = "script_re@cuffs", name = "cuffed_loop" }
+    { dict = "script_proc@robbing@cuffs", name = "cuff_front" },
+    { dict = "script_re@cuffs", name = "cuff_front" },
+    { dict = "mech_inventory@cuffs", name = "putoncuffs_front" },
+    { dict = "mp_arresting", name = "a_uncuff" }
 }
 
 local targetAnims = {
     { dict = "script_proc@robbing@cuffs", name = "cuffed_loop" },
     { dict = "script_re@cuffs", name = "cuffed_loop" },
     { dict = "mech_inventory@cuffs", name = "cuffed_loop" },
+    { dict = "mp_arresting", name = "idle" },
     { dict = "script_story@sal1@ig@ig11_cuffedsimon", name = "cuffed_loop" },
     { dict = "script_proc@robberies@shop@rhodes@gunsmith@inside", name = "cuffed_loop" }
 }
@@ -241,12 +243,12 @@ local function playAnimWithFallback(ped, animList, blendIn, blendOut, duration, 
         local name = anim.name
         RequestAnimDict(dict)
         local timeout = 0
-        while not HasAnimDictLoaded(dict) and timeout < 25 do
+        while not HasAnimDictLoaded(dict) and timeout < 100 do
             Wait(10)
             timeout = timeout + 1
         end
         if HasAnimDictLoaded(dict) then
-            TaskPlayAnim(targetPed, dict, name, blendIn or 8.0, blendOut or -8.0, duration or -1, flag or 31, 0.0, false, false, false)
+            TaskPlayAnim(targetPed, dict, name, blendIn or 8.0, blendOut or -8.0, duration or -1, flag or 1, 0.0, false, false, false)
             return dict, name
         end
     end
@@ -254,7 +256,34 @@ local function playAnimWithFallback(ped, animList, blendIn, blendOut, duration, 
 end
 
 local function playOfficerCuffAnim()
-    playAnimWithFallback(PlayerPedId(), officerAnims, 8.0, -8.0, 3000, 25)
+    local dict, name = playAnimWithFallback(PlayerPedId(), officerAnims, 8.0, -8.0, 2500, 25)
+    if not dict then
+        TaskStartScenarioInPlace(PlayerPedId(), GetHashKey("WORLD_HUMAN_STAND_WAITING"), 2500, true, false, false, false)
+    end
+end
+
+-- Replay the handcuffed animation on the local player using persisted dict/name
+local function replayCuffAnim()
+    if not isHandcuffed then return end
+    local ped = PlayerPedId()
+    if cuffAnimDict and cuffAnimName then
+        RequestAnimDict(cuffAnimDict)
+        local timeout = 0
+        while not HasAnimDictLoaded(cuffAnimDict) and timeout < 100 do
+            Wait(10)
+            timeout = timeout + 1
+        end
+        if HasAnimDictLoaded(cuffAnimDict) then
+            TaskPlayAnim(ped, cuffAnimDict, cuffAnimName, 8.0, -8.0, -1, 1, 0.0, false, false, false)
+            return
+        end
+    end
+    -- Fallback: try all target anims if the persisted ones failed
+    local dict, name = playAnimWithFallback(ped, targetAnims, 8.0, -8.0, -1, 1)
+    if dict and name then
+        cuffAnimDict = dict
+        cuffAnimName = name
+    end
 end
 
 local function cuffNPCPed(npcPed, cuffed)
@@ -264,9 +293,7 @@ local function cuffNPCPed(npcPed, cuffed)
         SetEnableHandcuffs(npcPed, true)
         Citizen.InvokeNative(0x1913AE2D2FB18414, npcPed, 128, true) -- SetPedConfigFlag 128 (Handcuffed)
         SetBlockingOfNonTemporaryEvents(npcPed, true)
-        FreezeEntityPosition(npcPed, true)
-
-        playAnimWithFallback(npcPed, targetAnims, 8.0, -8.0, -1, 31)
+        playAnimWithFallback(npcPed, targetAnims, 8.0, -8.0, -1, 1)
         notify("You handcuffed the individual.")
     else
         SetEnableHandcuffs(npcPed, false)
@@ -414,6 +441,7 @@ RegisterNetEvent("coi_police:client:syncCarryTarget", function(officerSrc)
         DetachEntity(playerPed, true, true)
         if isHandcuffed then
             FreezeEntityPosition(playerPed, true)
+            replayCuffAnim()
         end
         notify("You were dropped.")
     end
@@ -592,6 +620,52 @@ end)
 RegisterNUICallback("actionComingSoon", function(data, cb)
     notify(data.msg or "Feature coming soon!")
     cb("ok")
+end)
+
+-- SHOW CITIZEN IDENTIFICATION (Show ID)
+RegisterNUICallback("actionShowId", function(data, cb)
+    if not isAuthorizedOnDuty() then
+        SetNuiFocus(false, false)
+        notify("You must be ON duty to inspect identification!")
+        cb("ok")
+        return
+    end
+
+    local cuffDist = (Config and Config.CuffDistance) or 5.0
+    local closestPed, closestDist, isPlayer, targetServerId = GetClosestTargetPed(cuffDist)
+
+    if closestPed ~= -1 and DoesEntityExist(closestPed) then
+        if isPlayer and targetServerId then
+            TriggerServerEvent("coi_police:server:requestPlayerIdInfo", targetServerId)
+        else
+            -- NPC Citizen identification fallback
+            SendNUIMessage({
+                action = "openIdCard",
+                targetId = "NPC",
+                name = "Civilian Traveler",
+                job = "Local Resident",
+                grade = "Citizen"
+            })
+        end
+    else
+        notify("No citizen nearby to inspect ID!")
+    end
+    cb("ok")
+end)
+
+RegisterNUICallback("closeIdCard", function(data, cb)
+    SetNuiFocus(false, false)
+    cb("ok")
+end)
+
+RegisterNetEvent("coi_police:client:receivePlayerIdInfo", function(targetServerId, citizenName, job, grade)
+    SendNUIMessage({
+        action = "openIdCard",
+        targetId = targetServerId,
+        name = citizenName,
+        job = job,
+        grade = grade
+    })
 end)
 
 -- SUSPECT SATCHEL SEARCH & CONFISCATE NUI CALLBACKS
@@ -1051,6 +1125,7 @@ RegisterNetEvent("coi_police:client:teleportToCell", function(coords)
     end
     if isHandcuffed then
         FreezeEntityPosition(ped, true)
+        replayCuffAnim()
     end
     notify("You have been locked in a jail cell.")
 end)
@@ -1107,16 +1182,20 @@ RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
         SetEnableHandcuffs(playerPed, true)
         Citizen.InvokeNative(0x1913AE2D2FB18414, playerPed, 128, true) -- SetPedConfigFlag 128
         SetCurrentPedWeapon(playerPed, `WEAPON_UNARMED`, true)
-        if not isBeingCarried then
-            FreezeEntityPosition(playerPed, true)
-        end
+        SetPedMaxMoveBlendRatio(playerPed, 0.0)
 
-        local usedDict, usedName = playAnimWithFallback(playerPed, targetAnims, 8.0, -8.0, -1, 31)
+        local usedDict, usedName = playAnimWithFallback(playerPed, targetAnims, 8.0, -8.0, -1, 1)
+        -- Persist the active cuff animation for replay after carry/teleport
+        cuffAnimDict = usedDict
+        cuffAnimName = usedName
 
         CreateThread(function()
             while isHandcuffed do
                 Wait(0)
                 local ped = PlayerPedId()
+                -- Restrict movement speed while keeping skeleton free to animate
+                SetPedMaxMoveBlendRatio(ped, 0.0)
+
                 -- Disable Movement Controls
                 DisableControlAction(0, 0x5966D52A, true) -- MOVE LEFT/RIGHT
                 DisableControlAction(0, 0x4D8FA8B0, true) -- MOVE UP/DOWN
@@ -1133,9 +1212,12 @@ RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
                 DisableControlAction(0, 0x41AC83D1, true) -- VEHICLE/MOUNT
                 DisableControlAction(0, 0xCEFD9220, true) -- WHISTLE
 
-                if usedDict and usedName then
-                    if not IsEntityPlayingAnim(ped, usedDict, usedName, 3) and not IsPedRagdoll(ped) then
-                        TaskPlayAnim(ped, usedDict, usedName, 8.0, -8.0, -1, 31, 0.0, false, false, false)
+                -- Use persisted cuff anim references so they survive carry/teleport
+                local activeDict = cuffAnimDict or usedDict
+                local activeName = cuffAnimName or usedName
+                if activeDict and activeName then
+                    if not IsEntityPlayingAnim(ped, activeDict, activeName, 3) and not IsPedRagdoll(ped) and not isBeingCarried then
+                        TaskPlayAnim(ped, activeDict, activeName, 8.0, -8.0, -1, 1, 0.0, false, false, false)
                     end
                 end
             end
@@ -1150,7 +1232,10 @@ RegisterNetEvent("coi_police:client:toggleCuffTarget", function(officerSrc)
         SetEnableHandcuffs(playerPed, false)
         Citizen.InvokeNative(0x1913AE2D2FB18414, playerPed, 128, false)
         FreezeEntityPosition(playerPed, false)
+        SetPedMaxMoveBlendRatio(playerPed, 1.0)
         ClearPedTasks(playerPed)
+        cuffAnimDict = nil
+        cuffAnimName = nil
     end
 end)
 
@@ -1454,6 +1539,7 @@ local function cleanup()
     SendNUIMessage({ action = "hideCallAlert" })
     SendNUIMessage({ action = "closeSheriffDashboard" })
     SendNUIMessage({ action = "closeReinforcementMenu" })
+    SendNUIMessage({ action = "closeIdCard" })
     isAlertPanelOpen = false
     isDashboardOpen = false
     isReinforcementMenuOpen = false

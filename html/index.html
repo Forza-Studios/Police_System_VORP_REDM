@@ -81,7 +81,7 @@
                     </div>
                 </button>
 
-                <button id="btn-show-id" class="action-btn disabled">
+                <button id="btn-show-id" class="action-btn primary">
                     <div class="btn-icon">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                             <path d="M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 2v14h16V5H4zm2 2h6v2H6V7zm0 4h6v2H6v-2zm0 4h4v2H6v-2zm8-8h4v8h-4V7z"/>
@@ -91,7 +91,6 @@
                         <span class="title">Show ID</span>
                         <span class="subtitle">Inspect citizen identification</span>
                     </div>
-                    <span class="badge-tag">SOON</span>
                 </button>
 
                 <button id="btn-open-inventory" class="action-btn primary">
@@ -520,6 +519,94 @@
                 </div>
                 <div class="reinforcement-footer-hint">
                     Press <kbd>ESC</kbd> to close catalog
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Citizen Identification Card Modal (Show ID) -->
+    <div id="id-card-wrapper" class="hidden">
+        <div class="id-card-modal">
+            <!-- Brass Corner Accents -->
+            <div class="corner-brass top-left"></div>
+            <div class="corner-brass top-right"></div>
+            <div class="corner-brass bottom-left"></div>
+            <div class="corner-brass bottom-right"></div>
+
+            <!-- Header -->
+            <div class="id-card-header">
+                <div class="id-card-title-group">
+                    <div class="id-card-badge-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6.4-4.8-6.4 4.8 2.4-7.2-6-4.8h7.6z"/>
+                        </svg>
+                    </div>
+                    <div class="id-card-header-text">
+                        <span class="id-card-state">STATE OF NEW HANOVER</span>
+                        <h1 class="id-card-title">CERTIFICATE OF IDENTIFICATION</h1>
+                        <span class="id-card-subtitle">COUNTY OF VALENTINE • PUBLIC REGISTRY</span>
+                    </div>
+                </div>
+                <button id="close-id-card-btn" class="close-dash-btn" title="Close Certificate">&times;</button>
+            </div>
+
+            <!-- Divider -->
+            <div class="id-card-divider">
+                <div class="divider-line"></div>
+                <span class="divider-stamp">OFFICIAL RECORD</span>
+                <div class="divider-line"></div>
+            </div>
+
+            <!-- Body -->
+            <div class="id-card-body">
+                <div class="id-card-portrait-wrap">
+                    <div class="id-card-portrait-frame">
+                        <svg class="portrait-avatar" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                        </svg>
+                    </div>
+                    <div class="id-stamp-badge">VERIFIED</div>
+                </div>
+
+                <div class="id-card-fields">
+                    <div class="id-field-row highlight-row">
+                        <span class="field-label">FULL CITIZEN NAME</span>
+                        <span id="id-card-name" class="field-value name-val">Arthur Morgan</span>
+                    </div>
+
+                    <div class="id-field-grid">
+                        <div class="id-field-col">
+                            <span class="field-label">CITIZEN ID NO.</span>
+                            <span id="id-card-server-id" class="field-value id-val">ID: 1</span>
+                        </div>
+                        <div class="id-field-col">
+                            <span class="field-label">STATUS</span>
+                            <span id="id-card-legal-status" class="field-value status-val">CITIZEN</span>
+                        </div>
+                    </div>
+
+                    <div class="id-field-row">
+                        <span class="field-label">KNOWN VOCATION / OCCUPATION</span>
+                        <span id="id-card-job" class="field-value job-val">Law Enforcement</span>
+                    </div>
+
+                    <div class="id-field-row">
+                        <span class="field-label">GRADE / STANDING</span>
+                        <span id="id-card-grade" class="field-value grade-val">Deputy Sheriff</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Seal & Signature -->
+            <div class="id-card-footer">
+                <div class="id-card-seal-group">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="id-seal-icon">
+                        <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6.4-4.8-6.4 4.8 2.4-7.2-6-4.8h7.6z"/>
+                    </svg>
+                    <span class="id-seal-text">RECORDED & SEALED • SHERIFF'S OFFICE</span>
+                </div>
+                <div class="id-card-hint">
+                    Press <kbd>ESC</kbd> or click &times; to close
                 </div>
             </div>
         </div>

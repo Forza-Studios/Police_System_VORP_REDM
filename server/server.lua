@@ -111,6 +111,51 @@ RegisterNetEvent("coi_police:server:putInJail", function(targetServerId, coords)
     end
 end)
 
+-- Request Citizen Identification (Show ID)
+RegisterNetEvent("coi_police:server:requestPlayerIdInfo", function(targetServerId)
+    local _source = source
+    if not isPolice(_source) then return end
+    if not targetServerId or targetServerId == -1 then return end
+
+    local officerPed = GetPlayerPed(_source)
+    local targetPed = GetPlayerPed(targetServerId)
+
+    if DoesEntityExist(officerPed) and DoesEntityExist(targetPed) then
+        local officerCoords = GetEntityCoords(officerPed)
+        local targetCoords = GetEntityCoords(targetPed)
+        local dist = #(officerCoords - targetCoords)
+
+        if dist > 6.0 then
+            TriggerClientEvent("vorp:TipRight", _source, "Citizen is too far away to inspect ID!", 3000)
+            return
+        end
+
+        local targetUser = Core.getUser(targetServerId)
+        local targetChar = targetUser and targetUser.getUsedCharacter
+        if not targetChar then
+            TriggerClientEvent("vorp:TipRight", _source, "Unable to read citizen identity.", 3000)
+            return
+        end
+
+        local targetName = "Unknown Citizen"
+        local first = targetChar.firstname or ""
+        local last = targetChar.lastname or ""
+        local full = (first .. " " .. last):gsub("^%s+", ""):gsub("%s+$", "")
+        if full ~= "" then
+            targetName = full
+        else
+            targetName = GetPlayerName(targetServerId) or "Unknown Citizen"
+        end
+
+        local jobName = targetChar.job or "Unemployed"
+        local jobGrade = targetChar.jobGrade or targetChar.grade or 0
+        local jobLabel = targetChar.joblabel or targetChar.jobLabel or jobName
+
+        TriggerClientEvent("coi_police:client:receivePlayerIdInfo", _source, targetServerId, targetName, jobLabel, jobGrade)
+        TriggerClientEvent("vorp:TipRight", targetServerId, "A Law Enforcement officer is inspecting your identification.", 3000)
+    end
+end)
+
 -- Search Suspect Satchel Inventory
 RegisterNetEvent("coi_police:server:searchInventory", function(targetServerId)
     local _source = source
